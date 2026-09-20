@@ -18,7 +18,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               QASH — La gestion de boutique simplifiée. Solution moderne pour gérer votre caisse, votre stock, vos ventes et votre équipe.
             </p>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 text-neutral-600 text-xs font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span className="w-2 h-2 rounded-full bg-qash-green-500"></span>
               <span>Plateforme certifiée pour les commerçants</span>
             </div>
           </div>
@@ -32,7 +32,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   onClick={() => onNavigate('/')}
-                  className="hover:text-rose-600 transition-colors cursor-pointer"
+                  className="hover:text-qash-red-500 transition-colors cursor-pointer"
                 >
                   Accueil
                 </button>
@@ -40,7 +40,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   onClick={() => onNavigate('/', '#features')}
-                  className="hover:text-rose-600 transition-colors cursor-pointer"
+                  className="hover:text-qash-red-500 transition-colors cursor-pointer"
                 >
                   Fonctionnalités
                 </button>
@@ -48,7 +48,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   onClick={() => onNavigate('/', '#how-it-works')}
-                  className="hover:text-rose-600 transition-colors cursor-pointer"
+                  className="hover:text-qash-red-500 transition-colors cursor-pointer"
                 >
                   Comment ça marche
                 </button>
@@ -56,7 +56,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   onClick={() => onNavigate('/pricing')}
-                  className="hover:text-rose-600 transition-colors cursor-pointer"
+                  className="hover:text-qash-red-500 transition-colors cursor-pointer"
                 >
                   Tarifs (Pricing)
                 </button>
@@ -73,7 +73,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   onClick={() => onNavigate('/privacy')}
-                  className="hover:text-rose-600 transition-colors cursor-pointer"
+                  className="hover:text-qash-red-500 transition-colors cursor-pointer"
                 >
                   Politique de confidentialité
                 </button>
@@ -81,7 +81,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   onClick={() => onNavigate('/legal')}
-                  className="hover:text-rose-600 transition-colors cursor-pointer"
+                  className="hover:text-qash-red-500 transition-colors cursor-pointer"
                 >
                   Mentions légales
                 </button>

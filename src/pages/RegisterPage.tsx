@@ -127,25 +127,25 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
 
   if (loading) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center bg-neutral-50" id="register-loading">
-        <div className="w-8 h-8 border-2 border-neutral-900 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-[70vh] flex items-center justify-center bg-qash-surface" id="register-loading">
+        <div className="w-8 h-8 border-2 border-qash-ink border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-16 bg-neutral-50" id="register-page">
+    <div className="min-h-[85vh] flex items-center justify-center px-4 py-16 bg-qash-surface" id="register-page">
       <motion.div 
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
-        className="w-full max-w-md bg-white border border-neutral-200/80 rounded-2xl p-8 shadow-sm"
+        className="w-full max-w-md bg-white border border-qash-border rounded-2xl p-8 shadow-sm"
       >
         <div className="flex flex-col items-center mb-8">
           <div className="mb-4">
-            <QashLogo className="h-10 text-neutral-900" />
+            <QashLogo className="h-10 text-qash-ink" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-900 text-center">
+          <h1 className="text-2xl font-bold tracking-tight text-qash-ink text-center">
             Créer un compte QASH
           </h1>
           <p className="text-neutral-500 text-sm mt-2 text-center">
@@ -154,15 +154,15 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
         </div>
 
         {errorMsg && (
-          <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-start gap-3 text-rose-800 text-sm">
-            <AlertCircle className="w-5 h-5 shrink-0 text-rose-600 mt-0.5" />
+          <div className="mb-6 p-4 bg-qash-red-50 border border-qash-red-100 rounded-xl flex items-start gap-3 text-qash-red-600 text-sm">
+            <AlertCircle className="w-5 h-5 shrink-0 text-qash-red-500 mt-0.5" />
             <div>{errorMsg}</div>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-start gap-3 text-emerald-800 text-sm">
-            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600 mt-0.5" />
+          <div className="mb-6 p-4 bg-qash-green-50 border border-qash-green-600/20 rounded-xl flex items-start gap-3 text-qash-green-600 text-sm">
+            <CheckCircle2 className="w-5 h-5 shrink-0 text-qash-green-500 mt-0.5" />
             <div>{successMsg}</div>
           </div>
         )}
@@ -173,10 +173,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
           id="google-register-btn"
           onClick={handleGoogleSignIn}
           disabled={isSubmitting || isGoogleLoading}
-          className="w-full py-3 px-4 bg-white border border-neutral-200 hover:bg-neutral-50 hover:border-neutral-300 text-neutral-800 font-medium text-sm rounded-xl flex items-center justify-center gap-3 transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none shadow-xs active:scale-[0.99] mb-6"
+          className="w-full py-3 px-4 bg-white border border-qash-border hover:bg-qash-surface hover:border-neutral-300 text-qash-ink font-medium text-sm rounded-xl flex items-center justify-center gap-3 transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none shadow-xs active:scale-[0.99] mb-6"
         >
           {isGoogleLoading ? (
-            <div className="w-5 h-5 border-2 border-neutral-800 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-5 h-5 border-2 border-qash-ink border-t-transparent rounded-full animate-spin"></div>
           ) : (
             <>
               <GoogleIcon className="w-5 h-5 shrink-0" />
@@ -187,7 +187,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
 
         {/* Divider */}
         <div className="relative flex items-center justify-center mb-6">
-          <div className="border-t border-neutral-200/80 w-full"></div>
+          <div className="border-t border-qash-border w-full"></div>
           <span className="bg-white px-3 text-xs text-neutral-400 font-semibold uppercase tracking-wider absolute">
             ou
           </span>
@@ -211,7 +211,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                   placeholder="Jean"
                   required
                   disabled={isSubmitting || isGoogleLoading}
-                  className="w-full pl-9 pr-3 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-900 transition-all text-sm disabled:opacity-60"
+                  className="w-full pl-9 pr-3 py-2.5 bg-qash-surface border border-qash-border rounded-xl text-qash-ink placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-qash-red-500/10 focus:border-qash-red-500 transition-all text-sm disabled:opacity-60"
                 />
               </div>
             </div>
@@ -231,7 +231,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                   placeholder="Dupont"
                   required
                   disabled={isSubmitting || isGoogleLoading}
-                  className="w-full pl-9 pr-3 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-900 transition-all text-sm disabled:opacity-60"
+                  className="w-full pl-9 pr-3 py-2.5 bg-qash-surface border border-qash-border rounded-xl text-qash-ink placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-qash-red-500/10 focus:border-qash-red-500 transition-all text-sm disabled:opacity-60"
                 />
               </div>
             </div>
@@ -253,7 +253,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                 placeholder="votre@email.com"
                 required
                 disabled={isSubmitting || isGoogleLoading}
-                className="w-full pl-10 pr-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-900 transition-all text-sm disabled:opacity-60"
+                className="w-full pl-10 pr-4 py-2.5 bg-qash-surface border border-qash-border rounded-xl text-qash-ink placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-qash-red-500/10 focus:border-qash-red-500 transition-all text-sm disabled:opacity-60"
               />
             </div>
           </div>
@@ -274,7 +274,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                 placeholder="Minimum 6 caractères"
                 required
                 disabled={isSubmitting || isGoogleLoading}
-                className="w-full pl-10 pr-10 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-900 transition-all text-sm disabled:opacity-60"
+                className="w-full pl-10 pr-10 py-2.5 bg-qash-surface border border-qash-border rounded-xl text-qash-ink placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-qash-red-500/10 focus:border-qash-red-500 transition-all text-sm disabled:opacity-60"
               />
               <button
                 type="button"
@@ -304,7 +304,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                 placeholder="••••••••"
                 required
                 disabled={isSubmitting || isGoogleLoading}
-                className="w-full pl-10 pr-10 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-900 transition-all text-sm disabled:opacity-60"
+                className="w-full pl-10 pr-10 py-2.5 bg-qash-surface border border-qash-border rounded-xl text-qash-ink placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-qash-red-500/10 focus:border-qash-red-500 transition-all text-sm disabled:opacity-60"
               />
               <button
                 type="button"
@@ -322,7 +322,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             id="submit-register-btn"
             type="submit"
             disabled={isSubmitting || isGoogleLoading}
-            className="w-full py-3 bg-neutral-900 text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 active:scale-[0.99] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer mt-3"
+            className="w-full py-3 bg-qash-red-500 text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:bg-qash-red-600 focus:outline-none focus:ring-2 focus:ring-qash-red-500/20 active:scale-[0.99] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer mt-3"
           >
             {isSubmitting ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -335,12 +335,12 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-neutral-100 text-center">
+        <div className="mt-8 pt-6 border-t border-qash-border text-center">
           <p className="text-sm text-neutral-500">
             Vous avez déjà un compte ?{' '}
             <button
               onClick={() => onNavigate('/login')}
-              className="font-semibold text-neutral-900 hover:underline focus:outline-none cursor-pointer"
+              className="font-semibold text-qash-ink hover:underline focus:outline-none cursor-pointer"
             >
               Se connecter
             </button>

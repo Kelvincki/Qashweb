@@ -1,5 +1,6 @@
 import React from 'react';
 import { PackageX, Layers, Calculator, FileText, EyeOff, Users, WifiOff } from 'lucide-react';
+import { motion } from 'motion/react';
 
 export const ProblemSection: React.FC = () => {
   const problems = [
@@ -43,8 +44,14 @@ export const ProblemSection: React.FC = () => {
   return (
     <section className="py-20 bg-white border-y border-neutral-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mb-14">
-          <span className="text-xs font-bold uppercase tracking-wider text-rose-600 mb-2 block">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.6 }}
+          className="max-w-3xl mb-14"
+        >
+          <span className="text-xs font-bold uppercase tracking-wider text-qash-red-500 mb-2 block">
             Les défis du quotidien
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight mb-4">
@@ -53,29 +60,48 @@ export const ProblemSection: React.FC = () => {
           <p className="text-neutral-600 text-base sm:text-lg leading-relaxed">
             Chaque jour, les commerçants perdent un temps précieux avec des outils inadaptés ou des méthodes manuelles qui ralentissent la croissance de leur commerce.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-100px' }}
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.08,
+              },
+            },
+          }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
           {problems.map((p, idx) => {
             const Icon = p.icon;
             return (
-              <div
+              <motion.div
                 key={idx}
-                className="p-6 rounded-2xl bg-neutral-50/70 border border-neutral-200/80 hover:border-neutral-300 transition-colors"
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
+                }}
+                whileHover={{ y: -6, scale: 1.01, boxShadow: '0 10px 30px -15px rgba(0,0,0,0.08)' }}
+                className="p-6 rounded-2xl bg-qash-surface border border-qash-border hover:border-neutral-300 transition-colors"
               >
                 <div className="w-10 h-10 rounded-xl bg-neutral-200/80 text-neutral-700 flex items-center justify-center mb-4">
                   <Icon className="w-5 h-5" />
                 </div>
-                <h3 className="text-base font-bold text-neutral-900 mb-2">
+                <h3 className="text-base font-bold text-neutral-900 mb-2 font-display">
                   {p.title}
                 </h3>
                 <p className="text-sm text-neutral-600 leading-relaxed">
                   {p.desc}
                 </p>
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

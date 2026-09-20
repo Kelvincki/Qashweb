@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
     <header
       className={`sticky top-0 z-40 w-full transition-all duration-200 ${
         scrolled
-          ? 'bg-white/95 backdrop-blur-md shadow-xs border-b border-neutral-200/80 py-3'
+          ? 'bg-white/95 backdrop-blur-md shadow-xs border-b border-qash-border py-3'
           : 'bg-white border-b border-neutral-100 py-4'
       }`}
     >
@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Brand Logo */}
         <button
           onClick={() => handleLinkClick('/')}
-          className="cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-rose-500 rounded-lg"
+          className="cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-qash-red-500 rounded-lg"
           aria-label="Accueil QASH"
         >
           <QashLogo size="md" />
@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => handleLinkClick('/')}
             className={`transition-colors hover:text-neutral-900 cursor-pointer ${
-              currentRoute === '/' ? 'text-rose-600 font-semibold' : ''
+              currentRoute === '/' ? 'text-qash-red-600 font-semibold' : ''
             }`}
           >
             Accueil
@@ -75,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => handleLinkClick('/pricing')}
             className={`transition-colors hover:text-neutral-900 cursor-pointer ${
-              currentRoute === '/pricing' ? 'text-rose-600 font-semibold' : ''
+              currentRoute === '/pricing' ? 'text-qash-red-600 font-semibold' : ''
             }`}
           >
             Pricing
@@ -97,15 +97,14 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={() => handleLinkClick('/login')}
                 className={`transition-colors hover:text-neutral-900 text-sm font-semibold cursor-pointer ${
-                  currentRoute === '/login' ? 'text-rose-600' : 'text-neutral-600'
+                  currentRoute === '/login' ? 'text-qash-red-600' : 'text-neutral-600'
                 }`}
               >
                 Se connecter
               </button>
               <button
                 onClick={onOpenStartModal}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 rounded-xl shadow-xs transition-all duration-150 cursor-pointer hover:shadow-sm"
-                style={{ backgroundColor: '#E11D48' }}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-qash-red-500 hover:bg-qash-red-600 active:bg-qash-red-700 rounded-xl shadow-xs transition-all duration-150 cursor-pointer hover:shadow-sm"
               >
                 <span>Commencer avec QASH</span>
                 <ArrowRight className="w-4 h-4" />
@@ -135,7 +134,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => handleLinkClick('/')}
               className={`w-full text-left px-3 py-2.5 rounded-lg text-base font-medium transition-colors cursor-pointer ${
                 currentRoute === '/'
-                  ? 'bg-rose-50 text-rose-600 font-semibold'
+                  ? 'bg-qash-red-50 text-qash-red-600 font-semibold'
                   : 'text-neutral-700 hover:bg-neutral-50'
               }`}
             >
@@ -157,7 +156,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => handleLinkClick('/pricing')}
               className={`w-full text-left px-3 py-2.5 rounded-lg text-base font-medium transition-colors cursor-pointer ${
                 currentRoute === '/pricing'
-                  ? 'bg-rose-50 text-rose-600 font-semibold'
+                  ? 'bg-qash-red-50 text-qash-red-600 font-semibold'
                   : 'text-neutral-700 hover:bg-neutral-50'
               }`}
             >
@@ -203,8 +202,7 @@ export const Header: React.FC<HeaderProps> = ({
                   setMobileMenuOpen(false);
                   onOpenStartModal();
                 }}
-                className="w-full py-3 px-4 text-center font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-xs cursor-pointer"
-                style={{ backgroundColor: '#E11D48' }}
+                className="w-full py-3 px-4 text-center font-semibold text-white bg-qash-red-500 hover:bg-qash-red-600 rounded-xl transition-colors shadow-xs cursor-pointer"
               >
                 Commencer avec QASH
               </button>

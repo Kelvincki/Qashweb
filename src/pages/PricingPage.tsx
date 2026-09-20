@@ -88,7 +88,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Page Hero */}
         <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-semibold mb-4 border border-rose-100">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-qash-red-50 text-qash-red-600 mb-4 border border-qash-red-100">
             <span>Abonnement mensuel transparent</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-neutral-900 tracking-tight mb-4">
@@ -102,12 +102,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16">
           {/* Card Gérant */}
-          <div className="rounded-3xl bg-white border-2 border-rose-600 p-8 sm:p-10 shadow-sm relative flex flex-col justify-between">
-            <div className="absolute -top-3.5 left-8 px-3 py-0.5 bg-rose-600 text-white font-bold text-xs rounded-full uppercase tracking-wider">
+          <div className="rounded-3xl bg-white border-2 border-qash-red-500 p-8 sm:p-10 shadow-sm relative flex flex-col justify-between">
+            <div className="absolute -top-3.5 left-8 px-3 py-0.5 bg-qash-red-500 text-white font-bold text-xs rounded-full uppercase tracking-wider">
               Indispensable
             </div>
             <div>
-              <div className="text-xs font-bold text-rose-600 uppercase tracking-wider mb-2">
+              <div className="text-xs font-bold text-qash-red-500 uppercase tracking-wider mb-2">
                 Compte d&apos;administration
               </div>
               <h2 className="text-2xl font-bold text-neutral-900 mb-2">
@@ -132,15 +132,15 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
             <div className="pt-6">
               <ul className="space-y-2.5 text-xs sm:text-sm text-neutral-700 font-medium">
                 <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <Check className="w-4 h-4 text-qash-green-600 shrink-0" />
                   <span>Accès complet aux paramètres de la boutique</span>
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <Check className="w-4 h-4 text-qash-green-600 shrink-0" />
                   <span>Gestion des marges et du chiffre d&apos;affaires</span>
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <Check className="w-4 h-4 text-qash-green-600 shrink-0" />
                   <span>Toutes les fonctionnalités IA & Offline incluses</span>
                 </li>
               </ul>
@@ -150,7 +150,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
           {/* Card Employé */}
           <div className="rounded-3xl bg-white border border-neutral-200/90 p-8 sm:p-10 shadow-xs flex flex-col justify-between">
             <div>
-              <div className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2">
+              <div className="text-xs font-bold text-qash-gold-600 uppercase tracking-wider mb-2">
                 Pour chaque collaborateur
               </div>
               <h2 className="text-2xl font-bold text-neutral-900 mb-2">
@@ -175,15 +175,15 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
             <div className="pt-6">
               <ul className="space-y-2.5 text-xs sm:text-sm text-neutral-700 font-medium">
                 <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <Check className="w-4 h-4 text-qash-green-600 shrink-0" />
                   <span>Interface de caisse rapide et intuitive</span>
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <Check className="w-4 h-4 text-qash-green-600 shrink-0" />
                   <span>Scan du panier IA pour encaissement fluide</span>
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <Check className="w-4 h-4 text-qash-green-600 shrink-0" />
                   <span>Traçabilité des ventes de chaque vendeur</span>
                 </li>
               </ul>
@@ -298,7 +298,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
                   <div className="text-xs uppercase font-bold tracking-wider text-neutral-500">
                     Total mensuel
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-rose-600 tracking-tight">
+                  <div className="text-2xl sm:text-3xl font-black text-qash-red-500 tracking-tight">
                     {formatPrice(grandTotal)}{' '}
                     <span className="text-xs font-normal text-neutral-500">/ mois</span>
                   </div>
@@ -306,8 +306,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
 
                 <button
                   onClick={onOpenStartModal}
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs sm:text-sm transition-colors shadow-xs"
-                  style={{ backgroundColor: '#E11D48' }}
+                  className="px-5 py-2.5 rounded-xl bg-qash-red-500 hover:bg-qash-red-600 text-white font-semibold text-xs sm:text-sm transition-colors shadow-xs"
                 >
                   Commencer avec QASH
                 </button>
@@ -319,7 +318,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
         {/* Included Features Section */}
         <div className="max-w-4xl mx-auto mb-20 bg-white rounded-3xl p-8 sm:p-10 border border-neutral-200/90 shadow-xs">
           <div className="text-center max-w-2xl mx-auto mb-8">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-1 block">
+            <span className="text-xs font-bold uppercase tracking-wider text-qash-green-600 mb-1 block">
               Inclus sans surcoût
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight mb-2">
@@ -336,7 +335,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
                 key={idx}
                 className="flex items-center gap-3 p-3.5 rounded-xl bg-neutral-50 border border-neutral-100 text-sm font-semibold text-neutral-800"
               >
-                <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <div className="w-5 h-5 rounded-full bg-qash-green-50 text-qash-green-600 flex items-center justify-center shrink-0">
                   <Check className="w-3.5 h-3.5" />
                 </div>
                 <span>{feat}</span>
@@ -348,7 +347,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
         {/* FAQ Section */}
         <div className="max-w-3xl mx-auto mb-20">
           <div className="text-center mb-10">
-            <span className="text-xs font-bold uppercase tracking-wider text-rose-600 mb-1 block">
+            <span className="text-xs font-bold uppercase tracking-wider text-qash-red-500 mb-1 block">
               Questions fréquentes
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight mb-2">
@@ -376,7 +375,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
                     <span>{faq.question}</span>
                     <ChevronDown
                       className={`w-5 h-5 text-neutral-400 shrink-0 transition-transform duration-200 ${
-                        isOpen ? 'rotate-180 text-rose-600' : ''
+                        isOpen ? 'rotate-180 text-qash-red-500' : ''
                       }`}
                     />
                   </button>
@@ -402,8 +401,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
           </p>
           <button
             onClick={onOpenStartModal}
-            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-colors cursor-pointer shadow-sm"
-            style={{ backgroundColor: '#E11D48' }}
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-qash-red-500 hover:bg-qash-red-600 text-white font-semibold text-sm transition-colors cursor-pointer shadow-sm"
           >
             <span>Commencer avec QASH</span>
             <ArrowRight className="w-4 h-4" />

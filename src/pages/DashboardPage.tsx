@@ -82,7 +82,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           {/* Dashboard Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-neutral-200/80 rounded-2xl p-6 sm:p-8 shadow-sm">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-full text-xs font-medium mb-3">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-qash-green-50 text-qash-green-600 border border-qash-green-600/20 rounded-full text-xs font-medium mb-3">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 Espace connecté avec succès
               </div>
@@ -217,8 +217,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                   <LayoutDashboard className="w-3.5 h-3.5" />
                   Statut de l'infrastructure
                 </div>
-                <div className="mt-2 flex items-center gap-2 text-emerald-600 font-medium text-xs">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <div className="mt-2 flex items-center gap-2 text-qash-green-600 font-medium text-xs">
+                  <span className="w-2 h-2 rounded-full bg-qash-green-500 animate-pulse"></span>
                   Supabase Live & Connected
                 </div>
               </div>

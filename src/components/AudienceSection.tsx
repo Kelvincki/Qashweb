@@ -39,7 +39,7 @@ export const AudienceSection: React.FC = () => {
     <section className="py-24 bg-white border-b border-neutral-200/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mb-16">
-          <span className="text-xs font-bold uppercase tracking-wider text-rose-600 mb-2 block">
+          <span className="text-xs font-bold uppercase tracking-wider text-qash-red-500 mb-2 block">
             Adaptabilité
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight mb-4">
@@ -58,7 +58,7 @@ export const AudienceSection: React.FC = () => {
                 key={idx}
                 className="p-6 rounded-2xl bg-neutral-50/70 border border-neutral-200/80 hover:border-neutral-300 transition-colors"
               >
-                <div className="w-10 h-10 rounded-xl bg-white border border-neutral-200 text-rose-600 flex items-center justify-center mb-4">
+                <div className="w-10 h-10 rounded-xl bg-white border border-neutral-200 text-qash-red-500 flex items-center justify-center mb-4">
                   <Icon className="w-5 h-5" />
                 </div>
                 <h3 className="text-base font-bold text-neutral-900 mb-1.5">

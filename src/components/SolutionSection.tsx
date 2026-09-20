@@ -1,5 +1,6 @@
 import React from 'react';
 import { CreditCard, TrendingUp, Boxes, Tag, Users2, BarChart3, ArrowRight } from 'lucide-react';
+import { motion } from 'motion/react';
 
 export const SolutionSection: React.FC = () => {
   const pillars = [
@@ -38,11 +39,17 @@ export const SolutionSection: React.FC = () => {
   return (
     <section id="solution" className="py-20 bg-neutral-900 text-white relative overflow-hidden">
       {/* Decorative ambient subtle circle */}
-      <div className="absolute top-1/2 -right-32 -translate-y-1/2 w-96 h-96 bg-rose-600/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-1/2 -right-32 -translate-y-1/2 w-96 h-96 bg-qash-red-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-xs font-bold uppercase tracking-widest text-amber-400 mb-3 block">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.6 }}
+          className="text-center max-w-3xl mx-auto mb-16"
+        >
+          <span className="text-xs font-bold uppercase tracking-widest text-qash-gold-400 mb-3 block">
             Solution Unifiée
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-4">
@@ -51,39 +58,64 @@ export const SolutionSection: React.FC = () => {
           <p className="text-neutral-400 text-base sm:text-lg leading-relaxed">
             QASH rassemble l&apos;ensemble des fonctions vitales de votre commerce dans une application intuitive, conçue pour vous faire gagner du temps chaque jour.
           </p>
-        </div>
+        </motion.div>
 
         {/* Centralization Equation Display */}
-        <div className="mb-14 p-4 sm:p-6 bg-neutral-800/80 border border-neutral-700/80 rounded-2xl max-w-4xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.5, type: 'spring' }}
+          className="mb-14 p-4 sm:p-6 bg-neutral-800/80 border border-neutral-700/80 rounded-2xl max-w-4xl mx-auto"
+        >
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm font-semibold text-neutral-200">
             <span className="px-3 py-1.5 rounded-lg bg-neutral-700/90 text-white">Caisse</span>
-            <span className="text-rose-400 font-bold">+</span>
+            <span className="text-qash-red-500 font-bold">+</span>
             <span className="px-3 py-1.5 rounded-lg bg-neutral-700/90 text-white">Ventes</span>
-            <span className="text-rose-400 font-bold">+</span>
+            <span className="text-qash-red-500 font-bold">+</span>
             <span className="px-3 py-1.5 rounded-lg bg-neutral-700/90 text-white">Stock</span>
-            <span className="text-rose-400 font-bold">+</span>
+            <span className="text-qash-red-500 font-bold">+</span>
             <span className="px-3 py-1.5 rounded-lg bg-neutral-700/90 text-white">Produits</span>
-            <span className="text-rose-400 font-bold">+</span>
+            <span className="text-qash-red-500 font-bold">+</span>
             <span className="px-3 py-1.5 rounded-lg bg-neutral-700/90 text-white">Employés</span>
-            <span className="text-rose-400 font-bold">+</span>
+            <span className="text-qash-red-500 font-bold">+</span>
             <span className="px-3 py-1.5 rounded-lg bg-neutral-700/90 text-white">Performances</span>
-            <span className="text-amber-400 font-bold px-1">=</span>
-            <span className="px-3.5 py-1.5 rounded-lg bg-rose-600 text-white font-extrabold shadow-xs" style={{ backgroundColor: '#E11D48' }}>
+            <span className="text-qash-gold-400 font-bold px-1">=</span>
+            <span className="px-3.5 py-1.5 rounded-lg bg-qash-red-500 text-white font-extrabold shadow-xs">
               QASH
             </span>
           </div>
-        </div>
+        </motion.div>
 
         {/* Pillars Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-100px' }}
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.08,
+              },
+            },
+          }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
           {pillars.map((item, idx) => {
             const Icon = item.icon;
             return (
-              <div
+              <motion.div
                 key={idx}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
+                }}
+                whileHover={{ y: -6, borderColor: '#FEA202', scale: 1.01 }}
                 className="p-6 rounded-2xl bg-neutral-800/60 border border-neutral-700/70 hover:border-neutral-600 transition-all duration-150"
               >
-                <div className="w-11 h-11 rounded-xl bg-neutral-700 text-amber-400 flex items-center justify-center mb-4">
+                <div className="w-11 h-11 rounded-xl bg-neutral-700 text-qash-gold-400 flex items-center justify-center mb-4">
                   <Icon className="w-5 h-5" />
                 </div>
                 <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
@@ -92,10 +124,10 @@ export const SolutionSection: React.FC = () => {
                 <p className="text-sm text-neutral-400 leading-relaxed">
                   {item.detail}
                 </p>
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

@@ -28,7 +28,7 @@ export const StartModal: React.FC<StartModalProps> = ({ isOpen, onClose }) => {
           <X className="w-5 h-5" />
         </button>
 
-        <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-5">
+        <div className="w-12 h-12 rounded-xl bg-qash-red-50 text-qash-red-600 flex items-center justify-center mb-5">
           <Store className="w-6 h-6" />
         </div>
 
@@ -42,28 +42,27 @@ export const StartModal: React.FC<StartModalProps> = ({ isOpen, onClose }) => {
 
         <div className="space-y-3 bg-neutral-50 p-4 rounded-xl border border-neutral-100 mb-6">
           <div className="flex items-start gap-3 text-sm text-neutral-700">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-4 h-4 text-qash-green-600 shrink-0 mt-0.5" />
             <span>Déploiement et configuration assistée de votre boutique</span>
           </div>
           <div className="flex items-start gap-3 text-sm text-neutral-700">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-4 h-4 text-qash-green-600 shrink-0 mt-0.5" />
             <span>Application mobile & tablette prête pour votre équipe</span>
           </div>
           <div className="flex items-start gap-3 text-sm text-neutral-700">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-4 h-4 text-qash-green-600 shrink-0 mt-0.5" />
             <span>Tarification transparente sans frais cachés</span>
           </div>
         </div>
 
-        <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-xs text-amber-900 flex items-center gap-2 mb-6">
-          <Smartphone className="w-4 h-4 text-amber-700 shrink-0" />
+        <div className="p-3 bg-qash-gold-400/10 border border-qash-gold-500/20 rounded-xl text-xs text-qash-gold-600 flex items-center gap-2 mb-6">
+          <Smartphone className="w-4 h-4 text-qash-gold-600 shrink-0" />
           <span>Activation officielle lors du lancement public.</span>
         </div>
 
         <button
           onClick={onClose}
-          className="w-full py-3 px-4 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm rounded-xl transition-colors shadow-sm"
-          style={{ backgroundColor: '#E11D48' }}
+          className="w-full py-3 px-4 bg-qash-red-500 hover:bg-qash-red-600 text-white font-semibold text-sm rounded-xl transition-colors shadow-sm"
         >
           Fermer
         </button>

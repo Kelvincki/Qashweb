@@ -30,36 +30,12 @@ export const QashLogo: React.FC<QashLogoProps> = ({
   return (
     <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
       {/* QASH Emblem */}
-      <div
-        className={`${iconDimensions} rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-sm relative shrink-0 transition-transform duration-200 hover:scale-105`}
-        style={{ backgroundColor: '#E11D48' }}
-        aria-hidden="true"
-      >
-        <svg
-          viewBox="0 0 40 40"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-5/6 h-5/6"
-        >
-          {/* Stylized Modern Q mark */}
-          <circle
-            cx="19"
-            cy="19"
-            r="11"
-            stroke="white"
-            strokeWidth="3.6"
-            strokeLinecap="round"
-          />
-          <path
-            d="M26 26L32 32"
-            stroke="white"
-            strokeWidth="3.6"
-            strokeLinecap="round"
-          />
-          {/* Gold Spark / Accent Dot */}
-          <circle cx="27" cy="12" r="2.8" fill="#F59E0B" />
-        </svg>
-      </div>
+      <img
+        src="/logo_qash.png"
+        alt="QASH Logo"
+        className={`${iconDimensions} rounded-xl object-contain shrink-0 transition-transform duration-200 hover:scale-110`}
+        referrerPolicy="no-referrer"
+      />
 
       {showText && (
         <span

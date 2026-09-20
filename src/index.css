@@ -1,8 +1,37 @@
 @import "tailwindcss";
 
+@theme {
+  /* Rouge QASH — CTA principal, actions actives, alertes/suppressions */
+  --color-qash-red-50: #FEF2F2;
+  --color-qash-red-100: #FEE2E2;
+  --color-qash-red-500: #FA1316;
+  --color-qash-red-600: #E00F12;
+  --color-qash-red-700: #C20D10;
+
+  /* Jaune/Or QASH — accent, réapprovisionnement, attention */
+  --color-qash-gold-400: #FDD10B;
+  --color-qash-gold-500: #FEA202;
+  --color-qash-gold-600: #E88F00;
+
+  /* Vert — succès, stock disponible, tendances positives */
+  --color-qash-green-50: #F0FDF4;
+  --color-qash-green-500: #16A34A;
+  --color-qash-green-600: #15803D;
+
+  /* Neutres */
+  --color-qash-ink: #171717;
+  --color-qash-surface: #FAFAFA;
+  --color-qash-border: #E5E5E5;
+}
+
+@utility bg-qash-gradient {
+  background: linear-gradient(135deg, #FA1316 0%, #FEA202 100%);
+}
+
 @layer base {
   html {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     scroll-behavior: smooth;
   }
 }
+

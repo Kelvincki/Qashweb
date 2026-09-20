@@ -13,7 +13,7 @@ export const PricingTeaserSection: React.FC<PricingTeaserSectionProps> = ({
     <section className="py-24 bg-white border-b border-neutral-200/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-xs font-bold uppercase tracking-wider text-rose-600 mb-2 block">
+          <span className="text-xs font-bold uppercase tracking-wider text-qash-red-500 mb-2 block">
             Abonnement mensuel
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-neutral-900 tracking-tight mb-4">
@@ -27,9 +27,9 @@ export const PricingTeaserSection: React.FC<PricingTeaserSectionProps> = ({
         {/* Pricing Teaser Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
           {/* Gérant Card */}
-          <div className="rounded-3xl border-2 border-rose-600/30 bg-rose-50/20 p-8 sm:p-10 flex flex-col justify-between shadow-xs">
+          <div className="rounded-3xl border-2 border-qash-red-500/30 bg-qash-red-50/20 p-8 sm:p-10 flex flex-col justify-between shadow-xs">
             <div>
-              <span className="inline-block px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-bold mb-4">
+              <span className="inline-block px-3 py-1 rounded-full bg-qash-red-50 border border-qash-red-100 text-qash-red-600 text-xs font-bold mb-4">
                 Compte principal
               </span>
               <h3 className="text-2xl font-bold text-neutral-900 mb-2">
@@ -48,11 +48,11 @@ export const PricingTeaserSection: React.FC<PricingTeaserSectionProps> = ({
               </div>
               <ul className="space-y-2 text-xs text-neutral-700">
                 <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <Check className="w-4 h-4 text-qash-green-600 shrink-0" />
                   <span>Gestion complète de la boutique</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <Check className="w-4 h-4 text-qash-green-600 shrink-0" />
                   <span>Tous les outils IA & Offline-first inclus</span>
                 </li>
               </ul>
@@ -62,7 +62,7 @@ export const PricingTeaserSection: React.FC<PricingTeaserSectionProps> = ({
           {/* Employé Card */}
           <div className="rounded-3xl border border-neutral-200/90 bg-neutral-50/60 p-8 sm:p-10 flex flex-col justify-between shadow-xs">
             <div>
-              <span className="inline-block px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold mb-4">
+              <span className="inline-block px-3 py-1 rounded-full bg-qash-gold-400/10 border border-qash-gold-600/20 text-qash-gold-600 text-xs font-bold mb-4">
                 Par membre supplémentaire
               </span>
               <h3 className="text-2xl font-bold text-neutral-900 mb-2">
@@ -81,11 +81,11 @@ export const PricingTeaserSection: React.FC<PricingTeaserSectionProps> = ({
               </div>
               <ul className="space-y-2 text-xs text-neutral-700">
                 <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <Check className="w-4 h-4 text-qash-green-600 shrink-0" />
                   <span>Accès caisse & scan panier sécurisé</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <Check className="w-4 h-4 text-qash-green-600 shrink-0" />
                   <span>Suivi individuel par vendeur</span>
                 </li>
               </ul>
@@ -97,8 +97,7 @@ export const PricingTeaserSection: React.FC<PricingTeaserSectionProps> = ({
         <div className="text-center">
           <button
             onClick={() => onNavigate('/pricing')}
-            className="inline-flex items-center gap-2.5 px-8 py-3.5 text-base font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors cursor-pointer"
-            style={{ backgroundColor: '#E11D48' }}
+            className="inline-flex items-center gap-2.5 px-8 py-3.5 text-base font-semibold text-white bg-qash-red-500 hover:bg-qash-red-600 rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             <span>Voir les tarifs et le calculateur</span>
             <ArrowRight className="w-4 h-4" />
