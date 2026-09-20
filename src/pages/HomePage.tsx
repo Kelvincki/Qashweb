@@ -6,6 +6,7 @@ import { FeaturesSection } from '../components/FeaturesSection';
 import { AiSection } from '../components/AiSection';
 import { OfflineSection } from '../components/OfflineSection';
 import { TeamSection } from '../components/TeamSection';
+import { TeamSyncSection } from '../components/TeamSyncSection';
 import { SecuritySection } from '../components/SecuritySection';
 import { AudienceSection } from '../components/AudienceSection';
 import { HowItWorksSection } from '../components/HowItWorksSection';
@@ -56,6 +57,9 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* 7. Gestion des équipes */}
       <TeamSection />
+
+      {/* 7b. Synchronisation des équipes et téléphones */}
+      <TeamSyncSection />
 
       {/* 8. Sécurité (discrète & factuelle) */}
       <SecuritySection />

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Minus, Plus, Check, HelpCircle, ChevronDown, Sparkles, ArrowRight } from 'lucide-react';
+import { motion } from 'motion/react';
 import { FaqItem } from '../types';
 
 interface PricingPageProps {
@@ -24,11 +25,23 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
   };
 
   const handleManagerChange = (delta: number) => {
-    setManagers((prev) => Math.max(1, prev + delta));
+    setManagers((prev) => {
+      const nextVal = Math.max(0, prev + delta);
+      if (nextVal > 0) {
+        setEmployees(0);
+      }
+      return nextVal;
+    });
   };
 
   const handleEmployeeChange = (delta: number) => {
-    setEmployees((prev) => Math.max(0, prev + delta));
+    setEmployees((prev) => {
+      const nextVal = Math.max(0, prev + delta);
+      if (nextVal > 0) {
+        setManagers(0);
+      }
+      return nextVal;
+    });
   };
 
   const managersTotal = managers * PRICE_PER_MANAGER;
@@ -102,15 +115,43 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16">
           {/* Card Gérant */}
-          <div className="rounded-3xl bg-white border-2 border-qash-red-500 p-8 sm:p-10 shadow-sm relative flex flex-col justify-between">
-            <div className="absolute -top-3.5 left-8 px-3 py-0.5 bg-qash-red-500 text-white font-bold text-xs rounded-full uppercase tracking-wider">
-              Indispensable
-            </div>
-            <div>
-              <div className="text-xs font-bold text-qash-red-500 uppercase tracking-wider mb-2">
-                Compte d&apos;administration
+          <motion.div
+            onClick={() => {
+              if (managers === 0) {
+                setManagers(1);
+                setEmployees(0); // Only allow one selected plan
+              } else {
+                setManagers(0);
+              }
+            }}
+            whileHover={{ y: -6 }}
+            className={`rounded-3xl bg-white p-8 sm:p-10 shadow-sm relative flex flex-col justify-between cursor-pointer border-2 transition-all duration-300 ${
+              managers > 0
+                ? 'border-qash-red-500 ring-4 ring-qash-red-500/5 shadow-md'
+                : 'border-neutral-200/90 hover:border-neutral-300'
+            }`}
+          >
+            {managers > 0 && (
+              <div className="absolute -top-3.5 left-8 px-3 py-0.5 bg-qash-red-500 text-white font-bold text-xs rounded-full uppercase tracking-wider animate-pulse">
+                Sélectionné
               </div>
-              <h2 className="text-2xl font-bold text-neutral-900 mb-2">
+            )}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-qash-red-500 uppercase tracking-wider">
+                  Compte d&apos;administration
+                </span>
+                {managers > 0 ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-qash-red-50 text-qash-red-600 text-xs font-semibold border border-qash-red-100">
+                    <Check className="w-3 h-3" /> Actif ({managers})
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-500 text-xs font-semibold">
+                    Inactif
+                  </span>
+                )}
+              </div>
+              <h2 className="text-2xl font-bold text-neutral-900 mb-2 font-display">
                 Gérant
               </h2>
               <p className="text-neutral-600 text-sm mb-6 leading-relaxed">
@@ -125,7 +166,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
                 </span>
               </div>
               <p className="text-xs text-neutral-500 pb-6 border-b border-neutral-100">
-                1 gérant minimum requis par boutique
+                Optionnel — pour les administrateurs et décideurs de la boutique
               </p>
             </div>
 
@@ -145,15 +186,41 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
                 </li>
               </ul>
             </div>
-          </div>
+          </motion.div>
 
           {/* Card Employé */}
-          <div className="rounded-3xl bg-white border border-neutral-200/90 p-8 sm:p-10 shadow-xs flex flex-col justify-between">
+          <motion.div
+            onClick={() => {
+              if (employees === 0) {
+                setEmployees(1);
+                setManagers(0); // Only allow one selected plan
+              } else {
+                setEmployees(0);
+              }
+            }}
+            whileHover={{ y: -6 }}
+            className={`rounded-3xl bg-white p-8 sm:p-10 shadow-xs flex flex-col justify-between cursor-pointer border-2 transition-all ${
+              employees > 0
+                ? 'border-qash-gold-500 ring-4 ring-qash-gold-500/5 shadow-md'
+                : 'border-neutral-200/90 hover:border-neutral-300'
+            }`}
+          >
             <div>
-              <div className="text-xs font-bold text-qash-gold-600 uppercase tracking-wider mb-2">
-                Pour chaque collaborateur
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-qash-gold-600 uppercase tracking-wider">
+                  Pour chaque collaborateur
+                </span>
+                {employees > 0 ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-qash-gold-50 text-qash-gold-700 text-xs font-semibold border border-qash-gold-100">
+                    <Check className="w-3 h-3 text-qash-gold-600" /> Actif ({employees})
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-500 text-xs font-semibold">
+                    Inactif
+                  </span>
+                )}
               </div>
-              <h2 className="text-2xl font-bold text-neutral-900 mb-2">
+              <h2 className="text-2xl font-bold text-neutral-900 mb-2 font-display">
                 Employé
               </h2>
               <p className="text-neutral-600 text-sm mb-6 leading-relaxed">
@@ -188,7 +255,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
                 </li>
               </ul>
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Dynamic Calculator Section */}
@@ -212,7 +279,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
               <div>
                 <div className="font-bold text-neutral-900 text-base">Gérants</div>
                 <div className="text-xs text-neutral-500">
-                  {formatPrice(PRICE_PER_MANAGER)} / mois par gérant (min. 1)
+                  {formatPrice(PRICE_PER_MANAGER)} / mois par gérant
                 </div>
               </div>
 
@@ -220,7 +287,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenStartModal }) =>
                 <button
                   type="button"
                   onClick={() => handleManagerChange(-1)}
-                  disabled={managers <= 1}
+                  disabled={managers <= 0}
                   className="w-11 h-11 rounded-xl bg-white border border-neutral-300 text-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-xs"
                   aria-label="Diminuer le nombre de gérants"
                 >
