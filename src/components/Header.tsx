@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, ArrowRight } from 'lucide-react';
+import { Menu, X, ArrowRight, User } from 'lucide-react';
 import { QashLogo } from './QashLogo';
 import { PageRoute } from '../types';
+import { useAuth } from './AuthContext';
 
 interface HeaderProps {
   currentRoute: PageRoute;
@@ -16,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -81,15 +83,35 @@ export const Header: React.FC<HeaderProps> = ({
         </nav>
 
         {/* Action Button (Desktop) */}
-        <div className="hidden md:flex items-center gap-3">
-          <button
-            onClick={onOpenStartModal}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 rounded-xl shadow-xs transition-all duration-150 cursor-pointer hover:shadow-sm"
-            style={{ backgroundColor: '#E11D48' }}
-          >
-            <span>Commencer avec QASH</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+        <div className="hidden md:flex items-center gap-4">
+          {!loading && user ? (
+            <button
+              onClick={() => handleLinkClick('/dashboard')}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-neutral-900 hover:bg-neutral-800 rounded-xl shadow-xs transition-all duration-150 cursor-pointer"
+            >
+              <User className="w-4 h-4" />
+              <span>Mon espace</span>
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => handleLinkClick('/login')}
+                className={`transition-colors hover:text-neutral-900 text-sm font-semibold cursor-pointer ${
+                  currentRoute === '/login' ? 'text-rose-600' : 'text-neutral-600'
+                }`}
+              >
+                Se connecter
+              </button>
+              <button
+                onClick={onOpenStartModal}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 rounded-xl shadow-xs transition-all duration-150 cursor-pointer hover:shadow-sm"
+                style={{ backgroundColor: '#E11D48' }}
+              >
+                <span>Commencer avec QASH</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Trigger */}
@@ -141,19 +163,52 @@ export const Header: React.FC<HeaderProps> = ({
             >
               Pricing
             </button>
+            
+            {!loading && user ? (
+              <button
+                onClick={() => handleLinkClick('/dashboard')}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-base font-medium transition-colors cursor-pointer ${
+                  currentRoute === '/dashboard'
+                    ? 'bg-neutral-100 text-neutral-900 font-semibold'
+                    : 'text-neutral-700 hover:bg-neutral-50'
+                }`}
+              >
+                Mon espace Dashboard
+              </button>
+            ) : (
+              <button
+                onClick={() => handleLinkClick('/login')}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-base font-medium transition-colors cursor-pointer ${
+                  currentRoute === '/login'
+                    ? 'bg-neutral-100 text-neutral-900 font-semibold'
+                    : 'text-neutral-700 hover:bg-neutral-50'
+                }`}
+              >
+                Se connecter
+              </button>
+            )}
           </div>
 
           <div className="pt-2">
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenStartModal();
-              }}
-              className="w-full py-3 px-4 text-center font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-xs"
-              style={{ backgroundColor: '#E11D48' }}
-            >
-              Commencer avec QASH
-            </button>
+            {!loading && user ? (
+              <button
+                onClick={() => handleLinkClick('/dashboard')}
+                className="w-full py-3 px-4 text-center font-semibold text-white bg-neutral-900 hover:bg-neutral-800 rounded-xl transition-colors shadow-xs cursor-pointer"
+              >
+                Aller au Dashboard
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenStartModal();
+                }}
+                className="w-full py-3 px-4 text-center font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-xs cursor-pointer"
+                style={{ backgroundColor: '#E11D48' }}
+              >
+                Commencer avec QASH
+              </button>
+            )}
           </div>
         </div>
       )}
