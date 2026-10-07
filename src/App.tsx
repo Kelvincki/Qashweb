@@ -15,25 +15,36 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
+import { PaymentSuccessPage } from './pages/PaymentSuccessPage';
+import { PaymentCanceledPage } from './pages/PaymentCanceledPage';
 import { AuthProvider } from './components/AuthContext';
 import { PageRoute } from './types';
+
+const VALID_ROUTES: PageRoute[] = [
+  '/',
+  '/pricing',
+  '/privacy',
+  '/legal',
+  '/login',
+  '/register',
+  '/dashboard',
+  '/auth/callback',
+  '/paiement/succes',
+  '/paiement/annule',
+];
 
 export default function App() {
   const [currentRoute, setCurrentRoute] = useState<PageRoute>(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
-      if (['/pricing', '/privacy', '/legal', '/login', '/register', '/dashboard', '/auth/callback'].includes(path)) {
+      if (VALID_ROUTES.includes(path as PageRoute)) {
         return path as PageRoute;
       }
       // Check hash route fallback if applicable
-      const hash = window.location.hash;
-      if (hash === '#/pricing') return '/pricing';
-      if (hash === '#/privacy') return '/privacy';
-      if (hash === '#/legal') return '/legal';
-      if (hash === '#/login') return '/login';
-      if (hash === '#/register') return '/register';
-      if (hash === '#/dashboard') return '/dashboard';
-      if (hash === '#/auth/callback') return '/auth/callback';
+      const hash = window.location.hash.replace(/^#/, '');
+      if (VALID_ROUTES.includes(hash as PageRoute)) {
+        return hash as PageRoute;
+      }
     }
     return '/';
   });
@@ -44,18 +55,15 @@ export default function App() {
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname;
-      if (['/pricing', '/privacy', '/legal', '/login', '/register', '/dashboard', '/auth/callback'].includes(path)) {
+      if (VALID_ROUTES.includes(path as PageRoute)) {
         setCurrentRoute(path as PageRoute);
       } else {
-        const hash = window.location.hash;
-        if (hash === '#/pricing') setCurrentRoute('/pricing');
-        else if (hash === '#/privacy') setCurrentRoute('/privacy');
-        else if (hash === '#/legal') setCurrentRoute('/legal');
-        else if (hash === '#/login') setCurrentRoute('/login');
-        else if (hash === '#/register') setCurrentRoute('/register');
-        else if (hash === '#/dashboard') setCurrentRoute('/dashboard');
-        else if (hash === '#/auth/callback') setCurrentRoute('/auth/callback');
-        else setCurrentRoute('/');
+        const hash = window.location.hash.replace(/^#/, '');
+        if (VALID_ROUTES.includes(hash as PageRoute)) {
+          setCurrentRoute(hash as PageRoute);
+        } else {
+          setCurrentRoute('/');
+        }
       }
     };
 
@@ -123,6 +131,12 @@ export default function App() {
           )}
           {currentRoute === '/auth/callback' && (
             <AuthCallbackPage onNavigate={navigate} />
+          )}
+          {currentRoute === '/paiement/succes' && (
+            <PaymentSuccessPage onNavigate={navigate} />
+          )}
+          {currentRoute === '/paiement/annule' && (
+            <PaymentCanceledPage onNavigate={navigate} />
           )}
         </main>
 

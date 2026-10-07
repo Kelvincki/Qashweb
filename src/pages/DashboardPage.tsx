@@ -86,14 +86,29 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     setProfileError(null);
 
     try {
-      const { data, error } = await supabase
+      // Diagnostic logging requested by user
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('--- DIAGNOSTIC SUPABASE AUTH & PROFILES ---');
+      console.log('1. user.id:', user.id);
+      console.log('2. user.email:', user.email);
+      console.log('3. session présente:', !!sessionData.session);
+
+      const { data, error, status } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, role, store_id')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
+
+      console.log('4. HTTP status requête profiles:', status);
+      console.log('5. Résultat exact profiles data:', data);
+      console.log('6. Erreur Supabase éventuelle:', error);
 
       if (error) {
-        console.error('Erreur chargement profil:', error);
+        console.error('Erreur Supabase lors du chargement du profil:', error);
+        setProfileError(`Erreur base de données (${error.code || status}): ${error.message}`);
+        setProfileData(null);
+      } else if (!data) {
+        console.warn('Aucun enregistrement profil trouvé dans public.profiles pour user.id =', user.id);
         setProfileError('Aucun profil associé à cet utilisateur dans Supabase. Veuillez vous assurer d\'avoir créé votre boutique sur l\'application Android QASH.');
         setProfileData(null);
       } else {
