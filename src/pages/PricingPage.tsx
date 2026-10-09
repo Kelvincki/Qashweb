@@ -53,9 +53,15 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   // Checkout redirect loading & error
   const [checkoutLoading, setCheckoutLoading] = useState<boolean>(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [checkoutErrorType, setCheckoutErrorType] = useState<
+    'only_owner_can_pay' | 'unauthorized' | 'payment_not_configured' | 'provider_error' | 'generic' | null
+  >(null);
 
   // FAQ accordion state
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+
+  // Is connected user an employee?
+  const isEmployee = subscription?.role?.toUpperCase() === 'EMPLOYE';
 
   // Helper formatting for FCFA: "12 000 FCFA" (no decimals, space thousand separator)
   const formatPrice = (amount: number | undefined | null): string => {
@@ -114,7 +120,27 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
       if (error) {
         console.warn('Erreur Edge Function create-checkout (quote):', error);
-        setQuoteError(error.message || 'Impossible d\'obtenir le calcul du tarif personnalisé.');
+        let errorBody: any = null;
+        const status = (error as any)?.context?.status;
+        if ((error as any)?.context && typeof (error as any).context.json === 'function') {
+          try {
+            errorBody = await (error as any).context.json();
+          } catch {
+            // ignore
+          }
+        }
+        const errorCode = errorBody?.error || errorBody?.code || errorBody?.message || '';
+        if (status === 403 || errorCode === 'only_owner_can_pay' || String(errorCode).includes('only_owner_can_pay')) {
+          setQuoteError('Seul le gérant de la boutique peut accéder aux tarifs d\'abonnement.');
+        } else if (status === 401 || errorCode === 'unauthorized' || String(errorCode).includes('unauthorized')) {
+          setQuoteError('Session expirée, reconnectez-vous.');
+        } else if (status === 503 || errorCode === 'payment_not_configured' || String(errorCode).includes('payment_not_configured')) {
+          setQuoteError('Le calcul des tarifs n\'est pas disponible pour le moment.');
+        } else if (status === 502 || errorCode === 'provider_error' || String(errorCode).includes('provider_error')) {
+          setQuoteError('Le service de paiement est indisponible, réessayez.');
+        } else {
+          setQuoteError(errorBody?.message || error.message || 'Impossible d\'obtenir le calcul du tarif personnalisé.');
+        }
       } else if (data) {
         setQuote(data as CheckoutQuote);
         // Default selected plan if available
@@ -148,15 +174,25 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
   // Handle Checkout payment initiation
   const handleCheckout = async (planKey: '1m' | '12m') => {
+    // Si l'utilisateur n'est pas connecté, mémoriser la destination pour y revenir après login
     if (!user) {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('qash_redirect_after_login', '/pricing');
+      }
       if (onNavigate) {
         onNavigate('/login');
       }
       return;
     }
 
+    // Un employé ne peut pas initier un paiement
+    if (isEmployee) {
+      return;
+    }
+
     setCheckoutLoading(true);
     setCheckoutError(null);
+    setCheckoutErrorType(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
@@ -165,21 +201,58 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
       if (error) {
         console.error('Erreur create-checkout invoke:', error);
-        setCheckoutError(error.message || 'Une erreur est survenue lors de l\'initialisation du paiement.');
+        let errorBody: any = null;
+        const status = (error as any)?.context?.status;
+
+        // Lire le corps JSON via error.context (Response) en cas de HTTP non-2xx
+        if ((error as any)?.context && typeof (error as any).context.json === 'function') {
+          try {
+            errorBody = await (error as any).context.json();
+          } catch {
+            // Échec du parsing JSON
+          }
+        }
+
+        const errorCode = errorBody?.error || errorBody?.code || errorBody?.message || '';
+
+        // Mapping précis des codes HTTP et erreurs attendues
+        if (status === 403 || errorCode === 'only_owner_can_pay' || String(errorCode).includes('only_owner_can_pay')) {
+          setCheckoutError('Seul le gérant de la boutique peut payer l\'abonnement.');
+          setCheckoutErrorType('only_owner_can_pay');
+        } else if (status === 401 || errorCode === 'unauthorized' || String(errorCode).includes('unauthorized')) {
+          setCheckoutError('Session expirée, reconnectez-vous.');
+          setCheckoutErrorType('unauthorized');
+        } else if (status === 503 || errorCode === 'payment_not_configured' || String(errorCode).includes('payment_not_configured')) {
+          setCheckoutError('Le paiement n\'est pas disponible pour le moment.');
+          setCheckoutErrorType('payment_not_configured');
+        } else if (status === 502 || errorCode === 'provider_error' || String(errorCode).includes('provider_error')) {
+          setCheckoutError('Le service de paiement est indisponible, réessayez.');
+          setCheckoutErrorType('provider_error');
+        } else {
+          setCheckoutError(
+            errorBody?.message || 
+            error.message || 
+            'Une erreur est survenue lors de l\'initialisation du paiement.'
+          );
+          setCheckoutErrorType('generic');
+        }
         setCheckoutLoading(false);
         return;
       }
 
-      if (data?.checkout_url) {
-        // Redirection vers l'interface de paiement sécurisée
-        window.location.href = data.checkout_url;
+      // 1. Correction BUG BLOQUANT : support de checkoutUrl (camelCase) et checkout_url
+      const target = data?.checkoutUrl ?? data?.checkout_url;
+      if (target) {
+        window.location.href = target;
       } else {
         setCheckoutError('L\'adresse de paiement n\'a pas pu être générée. Veuillez réessayer.');
+        setCheckoutErrorType('generic');
         setCheckoutLoading(false);
       }
     } catch (err: any) {
       console.error('Exception create-checkout:', err);
       setCheckoutError(err?.message || 'Erreur lors de la redirection vers le paiement.');
+      setCheckoutErrorType('generic');
       setCheckoutLoading(false);
     }
   };
@@ -255,15 +328,21 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={() => {
-              const el = document.getElementById('plans-selection');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="self-start sm:self-center shrink-0 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs sm:text-sm transition-colors shadow-2xs cursor-pointer"
-          >
-            S&apos;abonner maintenant
-          </button>
+          {isEmployee ? (
+            <span className="self-start sm:self-center shrink-0 px-3.5 py-2 rounded-xl bg-neutral-100 border border-neutral-200 text-neutral-600 font-medium text-xs sm:text-sm">
+              L&apos;abonnement est géré par votre gérant
+            </span>
+          ) : (
+            <button
+              onClick={() => {
+                const el = document.getElementById('plans-selection');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="self-start sm:self-center shrink-0 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs sm:text-sm transition-colors shadow-2xs cursor-pointer"
+            >
+              S&apos;abonner maintenant
+            </button>
+          )}
         </div>
       );
     }
@@ -290,15 +369,21 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={() => {
-              const el = document.getElementById('plans-selection');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="self-start sm:self-center shrink-0 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs sm:text-sm transition-colors shadow-2xs cursor-pointer"
-          >
-            Prolonger l&apos;abonnement
-          </button>
+          {isEmployee ? (
+            <span className="self-start sm:self-center shrink-0 px-3.5 py-2 rounded-xl bg-neutral-100 border border-neutral-200 text-neutral-600 font-medium text-xs sm:text-sm">
+              L&apos;abonnement est géré par votre gérant
+            </span>
+          ) : (
+            <button
+              onClick={() => {
+                const el = document.getElementById('plans-selection');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="self-start sm:self-center shrink-0 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs sm:text-sm transition-colors shadow-2xs cursor-pointer"
+            >
+              Prolonger l&apos;abonnement
+            </button>
+          )}
         </div>
       );
     }
@@ -325,15 +410,21 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={() => {
-              const el = document.getElementById('plans-selection');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="self-start sm:self-center shrink-0 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs sm:text-sm transition-colors shadow-2xs cursor-pointer"
-          >
-            Renouveler d&apos;urgence
-          </button>
+          {isEmployee ? (
+            <span className="self-start sm:self-center shrink-0 px-3.5 py-2 rounded-xl bg-neutral-100 border border-neutral-200 text-neutral-600 font-medium text-xs sm:text-sm">
+              L&apos;abonnement est géré par votre gérant
+            </span>
+          ) : (
+            <button
+              onClick={() => {
+                const el = document.getElementById('plans-selection');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="self-start sm:self-center shrink-0 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs sm:text-sm transition-colors shadow-2xs cursor-pointer"
+            >
+              Renouveler d&apos;urgence
+            </button>
+          )}
         </div>
       );
     }
@@ -357,15 +448,21 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={() => {
-              const el = document.getElementById('plans-selection');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="self-start sm:self-center shrink-0 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs sm:text-sm transition-colors shadow-2xs cursor-pointer"
-          >
-            Réactiver maintenant
-          </button>
+          {isEmployee ? (
+            <span className="self-start sm:self-center shrink-0 px-3.5 py-2 rounded-xl bg-neutral-100 border border-neutral-200 text-neutral-600 font-medium text-xs sm:text-sm">
+              L&apos;abonnement est géré par votre gérant
+            </span>
+          ) : (
+            <button
+              onClick={() => {
+                const el = document.getElementById('plans-selection');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="self-start sm:self-center shrink-0 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs sm:text-sm transition-colors shadow-2xs cursor-pointer"
+            >
+              Réactiver maintenant
+            </button>
+          )}
         </div>
       );
     }
@@ -479,6 +576,16 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               </div>
             </div>
 
+            {/* Notification spéciale si compte employé */}
+            {isEmployee && (
+              <div className="p-4 rounded-2xl bg-neutral-100 border border-neutral-200 text-neutral-700 text-xs sm:text-sm flex items-center gap-3">
+                <AlertCircle className="w-4 h-4 text-neutral-500 shrink-0" />
+                <span>
+                  Vous êtes connecté avec un compte <strong>Employé</strong>. L&apos;abonnement est géré par votre gérant.
+                </span>
+              </div>
+            )}
+
             {/* Subscription status feedback */}
             {subLoading ? (
               <div className="p-6 rounded-2xl bg-white border border-neutral-200 flex items-center justify-center gap-3 text-neutral-500 text-sm">
@@ -503,7 +610,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
             )}
           </div>
         ) : (
-          /* Non connecté : Invitation claire à se connecter */
+          /* Non connecté : Invitation claire à se connecter avec mémorisation de destination */
           <div className="max-w-4xl mx-auto mb-12 bg-white rounded-3xl p-6 sm:p-8 border border-neutral-200 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-1 text-center md:text-left">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 text-neutral-700 text-xs font-bold mb-2">
@@ -521,7 +628,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto shrink-0">
               {onNavigate && (
                 <button
-                  onClick={() => onNavigate('/login')}
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      sessionStorage.setItem('qash_redirect_after_login', '/pricing');
+                    }
+                    onNavigate('/login');
+                  }}
                   className="w-full sm:w-auto px-6 py-3 rounded-xl bg-qash-red-500 hover:bg-qash-red-600 active:bg-qash-red-700 text-white font-semibold text-sm transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span>Se connecter</span>
@@ -644,28 +756,35 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   </li>
                 </ul>
 
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedPlanKey('1m');
-                    handleCheckout('1m');
-                  }}
-                  disabled={checkoutLoading}
-                  className="mt-6 w-full py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 active:bg-black text-white font-semibold text-xs sm:text-sm transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {checkoutLoading && selectedPlanKey === '1m' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Ouverture du paiement...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>{user ? 'Payer 1 mois' : 'Choisir 1 mois'}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+                {/* Bouton d'action ou message si employé connecté */}
+                {isEmployee ? (
+                  <div className="mt-6 w-full py-3 px-4 rounded-xl bg-neutral-100 border border-neutral-200 text-neutral-600 font-medium text-xs sm:text-sm text-center select-none">
+                    L&apos;abonnement est géré par votre gérant
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPlanKey('1m');
+                      handleCheckout('1m');
+                    }}
+                    disabled={checkoutLoading}
+                    className="mt-6 w-full py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 active:bg-black text-white font-semibold text-xs sm:text-sm transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {checkoutLoading && selectedPlanKey === '1m' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Ouverture du paiement...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{user ? 'Payer 1 mois' : 'Choisir 1 mois'}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </motion.div>
 
@@ -775,46 +894,73 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   </li>
                 </ul>
 
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedPlanKey('12m');
-                    handleCheckout('12m');
-                  }}
-                  disabled={checkoutLoading}
-                  className="mt-6 w-full py-3 rounded-xl bg-qash-red-500 hover:bg-qash-red-600 active:bg-qash-red-700 text-white font-semibold text-xs sm:text-sm transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {checkoutLoading && selectedPlanKey === '12m' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Ouverture du paiement...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>{user ? 'Payer 12 mois (Recommandé)' : 'Choisir 12 mois'}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+                {/* Bouton d'action ou message si employé connecté */}
+                {isEmployee ? (
+                  <div className="mt-6 w-full py-3 px-4 rounded-xl bg-neutral-100 border border-neutral-200 text-neutral-600 font-medium text-xs sm:text-sm text-center select-none">
+                    L&apos;abonnement est géré par votre gérant
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPlanKey('12m');
+                      handleCheckout('12m');
+                    }}
+                    disabled={checkoutLoading}
+                    className="mt-6 w-full py-3 rounded-xl bg-qash-red-500 hover:bg-qash-red-600 active:bg-qash-red-700 text-white font-semibold text-xs sm:text-sm transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {checkoutLoading && selectedPlanKey === '12m' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Ouverture du paiement...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{user ? 'Payer 12 mois (Recommandé)' : 'Choisir 12 mois'}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </motion.div>
           </div>
 
-          {/* Checkout Error Message */}
+          {/* Checkout Error Message avec bouton vers /login si session expirée */}
           {checkoutError && (
-            <div className="mt-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 shrink-0 text-rose-500 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-semibold">Impossible de lancer le paiement</p>
-                <p className="text-xs text-rose-600 mt-0.5">{checkoutError}</p>
+            <div className="mt-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 shrink-0 text-rose-500 mt-0.5" />
+                <div>
+                  <p className="font-semibold">{checkoutError}</p>
+                </div>
               </div>
-              <button
-                onClick={() => setCheckoutError(null)}
-                className="text-xs font-semibold text-rose-700 hover:underline cursor-pointer"
-              >
-                Fermer
-              </button>
+              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                {checkoutErrorType === 'unauthorized' && onNavigate && (
+                  <button
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        sessionStorage.setItem('qash_redirect_after_login', '/pricing');
+                      }
+                      onNavigate('/login');
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-qash-red-500 hover:bg-qash-red-600 text-white text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <span>Se reconnecter</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setCheckoutError(null);
+                    setCheckoutErrorType(null);
+                  }}
+                  className="text-xs font-semibold text-rose-700 hover:underline cursor-pointer px-2 py-1"
+                >
+                  Fermer
+                </button>
+              </div>
             </div>
           )}
 
@@ -846,24 +992,30 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   <span>Paiement sécurisé via SenePay (Orange Money & Wave)</span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleCheckout(selectedPlanKey)}
-                  disabled={checkoutLoading}
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-qash-red-500 hover:bg-qash-red-600 text-white font-semibold text-xs sm:text-sm transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {checkoutLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Connexion au paiement...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Procéder au paiement ({selectedPlan ? formatPrice(selectedPlan.amount) : ''})</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+                {isEmployee ? (
+                  <div className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-neutral-100 border border-neutral-200 text-neutral-600 font-medium text-xs sm:text-sm text-center select-none">
+                    L&apos;abonnement est géré par votre gérant
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleCheckout(selectedPlanKey)}
+                    disabled={checkoutLoading}
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-qash-red-500 hover:bg-qash-red-600 text-white font-semibold text-xs sm:text-sm transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {checkoutLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Connexion au paiement...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Procéder au paiement ({selectedPlan ? formatPrice(selectedPlan.amount) : ''})</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -918,72 +1070,27 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               return (
                 <div
                   key={idx}
-                  className="rounded-2xl bg-white border border-neutral-200 overflow-hidden transition-colors"
+                  className="rounded-2xl bg-white border border-neutral-200/80 overflow-hidden shadow-2xs transition-colors"
                 >
                   <button
-                    type="button"
                     onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
-                    className="w-full p-5 text-left font-bold text-sm sm:text-base text-neutral-900 flex items-center justify-between gap-4 cursor-pointer hover:bg-neutral-50/60 transition-colors"
-                    aria-expanded={isOpen}
+                    className="w-full p-5 text-left flex items-center justify-between gap-4 font-semibold text-neutral-900 text-sm sm:text-base hover:bg-neutral-50/50 transition-colors cursor-pointer"
                   >
                     <span>{faq.question}</span>
                     <ChevronDown
-                      className={`w-5 h-5 text-neutral-400 shrink-0 transition-transform duration-200 ${
-                        isOpen ? 'rotate-180 text-qash-red-500' : ''
+                      className={`w-4 h-4 text-neutral-400 shrink-0 transition-transform duration-200 ${
+                        isOpen ? 'transform rotate-180 text-neutral-900' : ''
                       }`}
                     />
                   </button>
-
                   {isOpen && (
-                    <div className="px-5 pb-5 pt-1 text-sm text-neutral-600 leading-relaxed border-t border-neutral-100">
+                    <div className="px-5 pb-5 pt-1 text-neutral-600 text-xs sm:text-sm leading-relaxed border-t border-neutral-100">
                       {faq.answer}
                     </div>
                   )}
                 </div>
               );
             })}
-          </div>
-        </div>
-
-        {/* Final Page CTA */}
-        <div className="max-w-3xl mx-auto text-center p-8 sm:p-12 rounded-3xl bg-neutral-900 text-white">
-          <h3 className="text-2xl sm:text-3xl font-bold mb-3">
-            Prêt à simplifier la gestion de votre boutique ?
-          </h3>
-          <p className="text-neutral-400 text-sm sm:text-base mb-6 max-w-xl mx-auto leading-relaxed">
-            Rejoignez les commerçants qui gagnent du temps chaque jour grâce à la caisse intelligente QASH.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            {user ? (
-              <button
-                onClick={() => {
-                  const el = document.getElementById('plans-selection');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-qash-red-500 hover:bg-qash-red-600 text-white font-semibold text-sm transition-colors cursor-pointer shadow-sm"
-              >
-                <span>Choisir ma formule</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={onOpenStartModal}
-                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-qash-red-500 hover:bg-qash-red-600 text-white font-semibold text-sm transition-colors cursor-pointer shadow-sm"
-                >
-                  <span>Créer mon compte</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-                {onNavigate && (
-                  <button
-                    onClick={() => onNavigate('/login')}
-                    className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-semibold text-sm transition-colors cursor-pointer"
-                  >
-                    <span>Se connecter</span>
-                  </button>
-                )}
-              </>
-            )}
           </div>
         </div>
 

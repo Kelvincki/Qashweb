@@ -25,10 +25,24 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  // If already logged in, redirect to dashboard
+  // Helper to get and clear redirect destination after register/login
+  const getRedirectTarget = (): PageRoute => {
+    if (typeof window !== 'undefined') {
+      const target = (sessionStorage.getItem('qash_redirect_after_login') ||
+        sessionStorage.getItem('redirect_after_login')) as PageRoute | null;
+      if (target) {
+        sessionStorage.removeItem('qash_redirect_after_login');
+        sessionStorage.removeItem('redirect_after_login');
+        return target;
+      }
+    }
+    return '/dashboard';
+  };
+
+  // If already logged in, redirect to destination
   useEffect(() => {
     if (!loading && user) {
-      onNavigate('/dashboard');
+      onNavigate(getRedirectTarget());
     }
   }, [user, loading, onNavigate]);
 

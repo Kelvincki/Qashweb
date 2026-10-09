@@ -28,7 +28,7 @@ export const PaymentSuccessPage: React.FC<PaymentSuccessPageProps> = ({ onNaviga
   // Update tab title and inject robots noindex meta tag
   useEffect(() => {
     const prevTitle = document.title;
-    document.title = 'Paiement reçu — QASH';
+    document.title = 'Paiement confirmé — QASH';
 
     let metaRobots = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
     let createdMeta = false;
@@ -82,12 +82,12 @@ export const PaymentSuccessPage: React.FC<PaymentSuccessPageProps> = ({ onNaviga
 
           {/* Title */}
           <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight mb-4">
-            Merci ! Paiement reçu
+            Paiement confirmé
           </h1>
 
           {/* Explanatory Text */}
           <p className="text-sm sm:text-base text-neutral-600 leading-relaxed mb-6 max-w-sm">
-            Nous confirmons votre paiement. Votre abonnement QASH sera activé dans quelques instants. Retournez dans l&apos;application, elle se mettra à jour toute seule.
+            Merci ! Nous confirmons la réception de votre paiement. Votre abonnement QASH sera activé dans quelques instants. Retournez dans l&apos;application, elle se mettra à jour toute seule.
           </p>
 
           {/* Reference tag (Strictly max 6 chars, grey) */}
@@ -148,8 +148,15 @@ export const PaymentSuccessPage: React.FC<PaymentSuccessPageProps> = ({ onNaviga
 
         </div>
 
-        {/* Back to Home Link */}
-        <div className="mt-6 text-center">
+        {/* Back to Home or Dashboard Links */}
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2 text-center">
+          <button
+            onClick={() => onNavigate('/dashboard')}
+            className="text-xs text-neutral-700 hover:text-neutral-900 font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 py-2 px-3 rounded-lg hover:bg-neutral-200/60"
+          >
+            <span>Accéder à mon espace</span>
+          </button>
+          <span className="hidden sm:inline text-neutral-300">•</span>
           <button
             onClick={() => onNavigate('/')}
             className="text-xs text-neutral-500 hover:text-neutral-800 transition-colors cursor-pointer inline-flex items-center gap-1.5 py-2 px-3 rounded-lg hover:bg-neutral-100"

@@ -21,10 +21,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  // If already logged in, redirect to dashboard
+  // Helper to get and clear redirect destination after login
+  const getRedirectTarget = (): PageRoute => {
+    if (typeof window !== 'undefined') {
+      const target = (sessionStorage.getItem('qash_redirect_after_login') ||
+        sessionStorage.getItem('redirect_after_login')) as PageRoute | null;
+      if (target) {
+        sessionStorage.removeItem('qash_redirect_after_login');
+        sessionStorage.removeItem('redirect_after_login');
+        return target;
+      }
+    }
+    return '/dashboard';
+  };
+
+  // If already logged in, redirect to destination
   useEffect(() => {
     if (!loading && user) {
-      onNavigate('/dashboard');
+      onNavigate(getRedirectTarget());
     }
   }, [user, loading, onNavigate]);
 
@@ -82,8 +96,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
           setErrorMsg(error.message);
         }
       } else {
-        // Redirect will happen via useEffect onAuthChange
-        onNavigate('/dashboard');
+        // Redirect will happen via useEffect onAuthChange or immediate navigate
+        onNavigate(getRedirectTarget());
       }
     } catch (err: any) {
       setErrorMsg('Une erreur inattendue est survenue. Veuillez vérifier votre connexion réseau.');
