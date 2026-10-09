@@ -19,7 +19,8 @@ import {
   Receipt, 
   Clock, 
   Sparkles,
-  Smartphone
+  Smartphone,
+  CreditCard
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -347,7 +348,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-3 shrink-0 flex-wrap">
+                <button
+                  onClick={() => onNavigate('/pricing')}
+                  className="px-3.5 py-2.5 bg-qash-red-50 text-qash-red-600 hover:bg-qash-red-100 border border-qash-red-200 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  Abonnement
+                </button>
                 <button
                   onClick={handleRefreshAll}
                   disabled={statsLoading}

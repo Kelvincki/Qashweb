@@ -111,6 +111,7 @@ export default function App() {
           )}
           {currentRoute === '/pricing' && (
             <PricingPage
+              onNavigate={navigate}
               onOpenStartModal={() => setIsStartModalOpen(true)}
             />
           )}
