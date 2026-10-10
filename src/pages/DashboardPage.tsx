@@ -13,6 +13,7 @@ import {
   RefreshCw, 
   AlertTriangle, 
   TrendingUp, 
+  TrendingDown,
   Package, 
   Store, 
   Receipt, 
@@ -33,7 +34,10 @@ import {
   ShieldCheck,
   Loader2,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  Bell,
+  Filter,
+  BarChart3
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -98,6 +102,41 @@ interface TabDefinition {
   description: string;
 }
 
+interface PaymentItem {
+  id: string | number;
+  amount: number;
+  seats?: number | null;
+  period_days?: number | null;
+  kind?: 'renewal' | 'extend' | string;
+  status: string;
+  created_at: string;
+  completed_at?: string | null;
+}
+
+type PeriodFilter = 'today' | '7d' | '30d';
+
+const TAB_PARAM_MAP: Record<string, TabId> = {
+  'vue-ensemble': 'overview',
+  'overview': 'overview',
+  'activite': 'activity',
+  'activity': 'activity',
+  'abonnement': 'subscription',
+  'subscription': 'subscription',
+  'equipe': 'team',
+  'team': 'team',
+  'boutique-profil': 'store_profile',
+  'boutique_profil': 'store_profile',
+  'store_profile': 'store_profile',
+};
+
+const TAB_TO_PARAM: Record<TabId, string> = {
+  overview: 'vue-ensemble',
+  activity: 'activite',
+  subscription: 'abonnement',
+  team: 'equipe',
+  store_profile: 'boutique-profil',
+};
+
 const GERANT_TABS: TabDefinition[] = [
   { id: 'overview', label: "Vue d'ensemble", icon: LayoutDashboard, description: 'Résumé & accès direct' },
   { id: 'activity', label: 'Activité', icon: TrendingUp, description: 'Chiffre, ventes & stock' },
@@ -109,6 +148,7 @@ const GERANT_TABS: TabDefinition[] = [
 const EMPLOYEE_TABS: TabDefinition[] = [
   { id: 'overview', label: "Vue d'ensemble", icon: LayoutDashboard, description: 'Résumé & statut' },
   { id: 'activity', label: 'Activité', icon: TrendingUp, description: 'Chiffre, ventes & stock' },
+  { id: 'store_profile', label: 'Boutique et profil', icon: Store, description: 'Coordonnées du compte' },
 ];
 
 /**
@@ -188,8 +228,29 @@ function calculateDaysRemaining(targetDateStr?: string | null): number {
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const { user, loading: authLoading, signOut } = useAuth();
 
-  // Tab State
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  // Tab State initialisé depuis l'URL (?onglet=...)
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const ongletParam = params.get('onglet');
+      if (ongletParam && TAB_PARAM_MAP[ongletParam.toLowerCase()]) {
+        return TAB_PARAM_MAP[ongletParam.toLowerCase()];
+      }
+    }
+    return 'overview';
+  });
+
+  // Filtre d'analyse d'activité (Aujourd'hui / 7 derniers jours / 30 derniers jours)
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilter>('7d');
+  const [hoveredPointKey, setHoveredPointKey] = useState<string | null>(null);
+
+  // Filtre d'affichage des alertes de stock (Toutes / Ruptures / Faibles)
+  const [stockAlertFilter, setStockAlertFilter] = useState<'all' | 'rupture' | 'faible'>('all');
+
+  // Historique des règlements (payments) pour le gérant
+  const [payments, setPayments] = useState<PaymentItem[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [paymentsError, setPaymentsError] = useState<string | null>(null);
 
   // Profile
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
@@ -226,6 +287,29 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [extendCheckoutLoading, setExtendCheckoutLoading] = useState(false);
   const [extendCheckoutError, setExtendCheckoutError] = useState<string | null>(null);
 
+  // Navigation avec mémorisation de l'onglet actif dans l'URL (?onglet=...)
+  const handleSelectTab = useCallback((tabId: TabId) => {
+    setActiveTab(tabId);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('onglet', TAB_TO_PARAM[tabId] || tabId);
+      window.history.replaceState(null, '', url.pathname + url.search);
+    }
+  }, []);
+
+  // Écoute de l'historique navigateur (flèches précédente / suivante)
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const ongletParam = params.get('onglet');
+      if (ongletParam && TAB_PARAM_MAP[ongletParam.toLowerCase()]) {
+        setActiveTab(TAB_PARAM_MAP[ongletParam.toLowerCase()]);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // If not logged in, redirect to login page
   useEffect(() => {
     if (!authLoading && !user) {
@@ -241,12 +325,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const userRole = profileData?.role || subscription?.role || 'GERANT';
   const isEmployee = userRole.toUpperCase() === 'EMPLOYE' || userRole.toLowerCase() === 'employee';
 
-  // Ensure an employee cannot stay on manager-only tabs
+  // Ensure an employee cannot stay on manager-only tabs (Abonnement, Équipe)
   useEffect(() => {
-    if (isEmployee && (activeTab === 'subscription' || activeTab === 'team' || activeTab === 'store_profile')) {
-      setActiveTab('overview');
+    if (isEmployee && (activeTab === 'subscription' || activeTab === 'team')) {
+      handleSelectTab('overview');
     }
-  }, [isEmployee, activeTab]);
+  }, [isEmployee, activeTab, handleSelectTab]);
 
   // 1. Fetch Subscription via RPC get_my_subscription
   const fetchSubscription = useCallback(async () => {
@@ -388,6 +472,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           console.error('Erreur chargement ventes:', salesErr);
         } else {
           setSales(salesData || []);
+        }
+
+        // Fetch Payments (Historique des règlements pour le gérant propriétaire)
+        setPaymentsLoading(true);
+        setPaymentsError(null);
+        try {
+          const { data: paymentsData, error: paymentsErr } = await supabase
+            .from('payments')
+            .select('id, amount, seats, period_days, kind, status, created_at, completed_at')
+            .order('created_at', { ascending: false });
+
+          if (paymentsErr) {
+            console.warn('Erreur chargement paiements:', paymentsErr);
+            setPaymentsError(paymentsErr.message);
+          } else {
+            setPayments((paymentsData as PaymentItem[]) || []);
+          }
+        } catch (err: any) {
+          console.warn('Exception chargement paiements:', err);
+          setPaymentsError(err?.message || 'Erreur lors du chargement des règlements.');
+        } finally {
+          setPaymentsLoading(false);
         }
       }
     } catch (err: any) {
@@ -560,7 +666,320 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     ? `${firstName} ${lastName}`.trim() 
     : (metadata.full_name || user?.email?.split('@')[0] || 'Commerçant');
 
-  // Stats calculations
+  // 1. Analyse détaillée des stocks (ruptures, faibles, optimaux, valorisation marchande à l'achat)
+  const stockMetrics = useMemo(() => {
+    let outOfStockCount = 0; // stock_actuel <= 0
+    let lowStockCount = 0;   // 0 < stock_actuel <= seuil_alerte
+    let optimalStockCount = 0; // stock_actuel > seuil_alerte
+    let totalStockValuation = 0; // somme (prix_achat * stock_actuel) pour prix_achat > 0 et stock_actuel > 0
+    let valuedProductsCount = 0;
+
+    const outOfStockItems: ProductItem[] = [];
+    const lowStockItems: ProductItem[] = [];
+
+    products.forEach((p) => {
+      const stock = Number(p.stock_actuel) || 0;
+      const alertThreshold = Number(p.seuil_alerte) || 0;
+      const purchasePrice = Number(p.prix_achat) || 0;
+
+      if (stock <= 0) {
+        outOfStockCount++;
+        outOfStockItems.push(p);
+      } else if (stock <= alertThreshold) {
+        lowStockCount++;
+        lowStockItems.push(p);
+      } else {
+        optimalStockCount++;
+      }
+
+      if (purchasePrice > 0 && stock > 0) {
+        totalStockValuation += purchasePrice * stock;
+        valuedProductsCount++;
+      }
+    });
+
+    return {
+      outOfStockCount,
+      lowStockCount,
+      optimalStockCount,
+      totalStockValuation,
+      valuedProductsCount,
+      outOfStockItems,
+      lowStockItems,
+    };
+  }, [products]);
+
+  // 2. Bornes temporelles pour le fuseau Africa/Dakar (UTC+0)
+  const periodDateBounds = useMemo(() => {
+    const now = new Date();
+    
+    if (selectedPeriod === 'today') {
+      // Aujourd'hui (minuit UTC à fin de journée UTC)
+      const currentStart = new Date(now);
+      currentStart.setUTCHours(0, 0, 0, 0);
+      const currentEnd = new Date(currentStart);
+      currentEnd.setUTCHours(23, 59, 59, 999);
+
+      // Période précédente = hier complet
+      const previousStart = new Date(currentStart);
+      previousStart.setUTCDate(previousStart.getUTCDate() - 1);
+      const previousEnd = new Date(previousStart);
+      previousEnd.setUTCHours(23, 59, 59, 999);
+
+      return {
+        currentStart,
+        currentEnd,
+        previousStart,
+        previousEnd,
+        currentLabel: "Aujourd'hui",
+        previousLabel: 'hier',
+      };
+    }
+
+    if (selectedPeriod === '7d') {
+      // 7 derniers jours glissants
+      const currentStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const currentEnd = now;
+      const previousStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      const previousEnd = currentStart;
+
+      return {
+        currentStart,
+        currentEnd,
+        previousStart,
+        previousEnd,
+        currentLabel: '7 derniers jours',
+        previousLabel: '7 jours précédents',
+      };
+    }
+
+    // 30 derniers jours glissants
+    const currentStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const currentEnd = now;
+    const previousStart = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+    const previousEnd = currentStart;
+
+    return {
+      currentStart,
+      currentEnd,
+      previousStart,
+      previousEnd,
+      currentLabel: '30 derniers jours',
+      previousLabel: '30 jours précédents',
+    };
+  }, [selectedPeriod]);
+
+  // 3. Indicateurs de la période sélectionnée et comparaison avec la période précédente équivalente
+  const periodMetrics = useMemo(() => {
+    const { currentStart, currentEnd, previousStart, previousEnd, currentLabel, previousLabel } = periodDateBounds;
+
+    const currentSales = sales.filter((s) => {
+      const t = new Date(s.created_at).getTime();
+      return t >= currentStart.getTime() && t <= currentEnd.getTime();
+    });
+
+    const previousSales = sales.filter((s) => {
+      const t = new Date(s.created_at).getTime();
+      return t >= previousStart.getTime() && t <= previousEnd.getTime();
+    });
+
+    const currentRevenue = currentSales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+    const previousRevenue = previousSales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+
+    const currentCount = currentSales.length;
+    const previousCount = previousSales.length;
+
+    // Règle d'or : comparaison seulement si la période précédente contient des ventes
+    const hasPreviousSales = previousCount > 0 && previousRevenue > 0;
+    let revenueDiffPercent: number | null = null;
+    let countDiffPercent: number | null = null;
+
+    if (hasPreviousSales) {
+      revenueDiffPercent = Math.round(((currentRevenue - previousRevenue) / previousRevenue) * 100);
+      countDiffPercent = Math.round(((currentCount - previousCount) / previousCount) * 100);
+    }
+
+    return {
+      currentSales,
+      previousSales,
+      currentRevenue,
+      previousRevenue,
+      currentCount,
+      previousCount,
+      hasPreviousSales,
+      revenueDiffPercent,
+      countDiffPercent,
+      currentLabel,
+      previousLabel,
+    };
+  }, [sales, periodDateBounds]);
+
+  // 4. Données journalières pour le graphique sobre du CA (SVG)
+  const chartData = useMemo(() => {
+    const { currentSales } = periodMetrics;
+    
+    if (selectedPeriod === 'today') {
+      const slots = [
+        { label: '00h - 04h', short: '00h', startHour: 0, endHour: 4, revenue: 0, count: 0 },
+        { label: '04h - 08h', short: '04h', startHour: 4, endHour: 8, revenue: 0, count: 0 },
+        { label: '08h - 12h', short: '08h', startHour: 8, endHour: 12, revenue: 0, count: 0 },
+        { label: '12h - 16h', short: '12h', startHour: 12, endHour: 16, revenue: 0, count: 0 },
+        { label: '16h - 20h', short: '16h', startHour: 16, endHour: 20, revenue: 0, count: 0 },
+        { label: '20h - 24h', short: '20h', startHour: 20, endHour: 24, revenue: 0, count: 0 },
+      ];
+      
+      currentSales.forEach((s) => {
+        const d = new Date(s.created_at);
+        const h = d.getUTCHours();
+        const slot = slots.find((sl) => h >= sl.startHour && h < sl.endHour);
+        if (slot) {
+          slot.revenue += Number(s.amount) || 0;
+          slot.count += 1;
+        }
+      });
+
+      return slots.map((sl) => ({
+        key: sl.label,
+        label: sl.label,
+        shortLabel: sl.short,
+        revenue: sl.revenue,
+        count: sl.count,
+      }));
+    }
+
+    const daysCount = selectedPeriod === '7d' ? 7 : 30;
+    const now = new Date();
+    const days: Array<{
+      key: string;
+      label: string;
+      shortLabel: string;
+      revenue: number;
+      count: number;
+    }> = [];
+
+    for (let i = daysCount - 1; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const dateKey = d.toISOString().slice(0, 10);
+      const formattedDate = d.toLocaleDateString('fr-FR', {
+        timeZone: 'UTC',
+        day: 'numeric',
+        month: 'short',
+      });
+      const shortLabel = d.toLocaleDateString('fr-FR', {
+        timeZone: 'UTC',
+        day: 'numeric',
+      });
+
+      days.push({
+        key: dateKey,
+        label: formattedDate,
+        shortLabel: daysCount === 7 ? formattedDate : shortLabel,
+        revenue: 0,
+        count: 0,
+      });
+    }
+
+    currentSales.forEach((s) => {
+      const saleDateKey = new Date(s.created_at).toISOString().slice(0, 10);
+      const dayItem = days.find((d) => d.key === saleDateKey);
+      if (dayItem) {
+        dayItem.revenue += Number(s.amount) || 0;
+        dayItem.count += 1;
+      }
+    });
+
+    return days;
+  }, [selectedPeriod, periodMetrics]);
+
+  // 5. Notifications réelles calculées dynamiquement
+  const notifications = useMemo(() => {
+    const list: Array<{
+      id: string;
+      level: 'critical' | 'warning' | 'info';
+      title: string;
+      description: string;
+      targetTab?: TabId;
+      actionLabel?: string;
+    }> = [];
+
+    // Ruptures de stock (critique)
+    if (stockMetrics.outOfStockCount > 0) {
+      list.push({
+        id: 'out_of_stock',
+        level: 'critical',
+        title: `${stockMetrics.outOfStockCount} produit${stockMetrics.outOfStockCount > 1 ? 's' : ''} en rupture de stock`,
+        description: 'Des articles ont un stock nul ou négatif. Un réapprovisionnement immédiat est nécessaire.',
+        targetTab: 'activity',
+        actionLabel: 'Voir les ruptures',
+      });
+    }
+
+    // Stocks faibles (alerte)
+    if (stockMetrics.lowStockCount > 0) {
+      list.push({
+        id: 'low_stock',
+        level: 'warning',
+        title: `${stockMetrics.lowStockCount} alerte${stockMetrics.lowStockCount > 1 ? 's' : ''} de stock faible`,
+        description: "Le stock disponible a atteint le seuil d'alerte défini sur votre catalogue Android.",
+        targetTab: 'activity',
+        actionLabel: 'Consulter les stocks',
+      });
+    }
+
+    // Statut de l'abonnement
+    if (!isEmployee && subscription) {
+      const targetDate = subscription.current_period_end || subscription.access_until || subscription.trial_ends_at;
+      const daysLeft = calculateDaysRemaining(targetDate);
+      if (subscription.status === 'grace') {
+        list.push({
+          id: 'sub_grace',
+          level: 'critical',
+          title: 'Abonnement en période de grâce',
+          description: 'Votre forfait est arrivé à échéance. Renouvelez-le pour éviter toute interruption de synchronisation.',
+          targetTab: 'subscription',
+          actionLabel: 'Renouveler',
+        });
+      } else if (subscription.status === 'expired') {
+        list.push({
+          id: 'sub_expired',
+          level: 'critical',
+          title: 'Abonnement expiré',
+          description: "Votre abonnement QASH a expiré. Réactivez-le pour reprendre l'accès complet.",
+          targetTab: 'subscription',
+          actionLabel: 'Réactiver',
+        });
+      } else if (subscription.status === 'active' && daysLeft <= 5) {
+        list.push({
+          id: 'sub_expiring',
+          level: 'warning',
+          title: `Abonnement expirant dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`,
+          description: `Votre période active s'achève le ${formatDateFr(subscription.current_period_end)}. Vous pouvez renouveler par anticipation.`,
+          targetTab: 'subscription',
+          actionLabel: 'Renouveler',
+        });
+      }
+    }
+
+    // Capacité d'équipe saturée
+    if (!isEmployee && subscription && typeof subscription.paid_seats === 'number') {
+      const paid = subscription.paid_seats || 0;
+      const used = employees.length;
+      if (paid > 0 && used >= paid) {
+        list.push({
+          id: 'seats_full',
+          level: 'info',
+          title: `Capacité d'équipe atteinte (${used} / ${paid} place${paid > 1 ? 's' : ''} occupée${used > 1 ? 's' : ''})`,
+          description: "Toutes les licences employés sont assignées. Utilisez l'option « Étendre » pour rattacher de nouveaux vendeurs.",
+          targetTab: 'subscription',
+          actionLabel: "Étendre l'équipe",
+        });
+      }
+    }
+
+    return list;
+  }, [stockMetrics, subscription, isEmployee, employees.length]);
+
+  // Variables globales de base
   const totalRevenue = useMemo(() => sales.reduce((sum, s) => sum + (Number(s.amount) || 0), 0), [sales]);
   const salesCount = sales.length;
   const totalProducts = products.length;
@@ -598,7 +1017,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
       nextIndex = availableTabs.length - 1;
     }
     if (nextIndex !== index) {
-      setActiveTab(availableTabs[nextIndex].id);
+      handleSelectTab(availableTabs[nextIndex].id);
       const nextBtn = document.getElementById(`tab-btn-${availableTabs[nextIndex].id}`);
       nextBtn?.focus();
     }
@@ -714,6 +1133,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             {availableTabs.map((tab, idx) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
+              const tabBadgeCount = tab.id === 'activity' 
+                ? (stockMetrics.outOfStockCount + stockMetrics.lowStockCount)
+                : tab.id === 'subscription' && (subscription?.status === 'grace' || subscription?.status === 'expired' || daysRemaining <= 5)
+                ? 1
+                : 0;
+
               return (
                 <button
                   key={tab.id}
@@ -722,7 +1147,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                   aria-selected={isActive}
                   aria-controls={`tabpanel-${tab.id}`}
                   tabIndex={isActive ? 0 : -1}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleSelectTab(tab.id)}
                   onKeyDown={(e) => handleTabKeyDown(e, idx)}
                   className={`min-h-[48px] px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap shrink-0 transition-all cursor-pointer border ${
                     isActive
@@ -732,6 +1157,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                 >
                   <Icon className={`w-4 h-4 ${isActive ? 'text-rose-400' : 'text-neutral-500'}`} />
                   <span>{tab.label}</span>
+                  {tabBadgeCount > 0 && (
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      isActive ? 'bg-rose-500 text-white' : 'bg-rose-100 text-rose-700'
+                    }`}>
+                      {tabBadgeCount}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -763,7 +1195,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h2 className="text-lg font-bold text-neutral-900">Statut de l&apos;abonnement</h2>
+                          <h2 className="text-lg font-bold text-neutral-900">Statut de l'abonnement</h2>
                           {!subscriptionLoading && renderSubscriptionBadge()}
                         </div>
                         <p className="text-xs text-neutral-500 mt-0.5">
@@ -774,10 +1206,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
                     {!isEmployee && (
                       <button
-                        onClick={() => setActiveTab('subscription')}
+                        onClick={() => handleSelectTab('subscription')}
                         className="self-start sm:self-center shrink-0 min-h-[48px] px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-2xs"
                       >
-                        <span>Gérer l&apos;abonnement</span>
+                        <span>Gérer l'abonnement</span>
                         <ChevronRight className="w-4 h-4" />
                       </button>
                     )}
@@ -833,7 +1265,97 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                {/* 2. Trois Chiffres Clés */}
+                {/* 2. Centre d'Alertes & Notifications en direct */}
+                <div className="bg-white border border-neutral-200/80 rounded-2xl p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-neutral-100 text-neutral-800 flex items-center justify-center">
+                        <Bell className="w-4 h-4 text-neutral-700" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-neutral-900">Alertes & Notifications en direct</h3>
+                        <p className="text-xs text-neutral-500">Synthèse basée sur l'état réel de vos stocks et de votre abonnement</p>
+                      </div>
+                    </div>
+                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                      notifications.length > 0
+                        ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                    }`}>
+                      {notifications.length > 0
+                        ? `${notifications.length} alerte${notifications.length > 1 ? 's' : ''}`
+                        : 'Tout est optimal'}
+                    </span>
+                  </div>
+
+                  {notifications.length === 0 ? (
+                    <div className="py-4 px-4 bg-emerald-50/70 border border-emerald-200/70 rounded-xl flex items-center gap-3 text-xs text-emerald-900">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <div>
+                        <p className="font-bold">Aucune alerte à signaler</p>
+                        <p className="text-emerald-700 mt-0.5">Stocks sous contrôle, période d'abonnement valide et licences synchronisées.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {notifications.map((notif) => {
+                        const isCritical = notif.level === 'critical';
+                        const isWarning = notif.level === 'warning';
+                        return (
+                          <div
+                            key={notif.id}
+                            className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs ${
+                              isCritical
+                                ? 'bg-rose-50/80 border-rose-200 text-rose-950'
+                                : isWarning
+                                ? 'bg-amber-50/80 border-amber-200 text-amber-950'
+                                : 'bg-blue-50/80 border-blue-200 text-blue-950'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                                isCritical
+                                  ? 'bg-rose-100 text-rose-700'
+                                  : isWarning
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {isCritical ? (
+                                  <AlertCircle className="w-3.5 h-3.5" />
+                                ) : (
+                                  <AlertTriangle className="w-3.5 h-3.5" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-bold">{notif.title}</p>
+                                <p className="opacity-90 mt-0.5 leading-relaxed">{notif.description}</p>
+                              </div>
+                            </div>
+
+                            {notif.targetTab && notif.actionLabel && (
+                              <button
+                                type="button"
+                                onClick={() => handleSelectTab(notif.targetTab!)}
+                                className={`min-h-[48px] px-3.5 py-2 rounded-xl font-bold shrink-0 self-end sm:self-center transition-all cursor-pointer shadow-2xs text-xs flex items-center gap-1.5 ${
+                                  isCritical
+                                    ? 'bg-rose-900 text-white hover:bg-rose-950'
+                                    : isWarning
+                                    ? 'bg-amber-900 text-white hover:bg-amber-950'
+                                    : 'bg-neutral-900 text-white hover:bg-neutral-800'
+                                }`}
+                              >
+                                <span>{notif.actionLabel}</span>
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Trois Chiffres Clés */}
                 <div>
                   <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-500 mb-3">
                     Chiffres clés de la boutique
@@ -841,78 +1363,92 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {/* CA */}
                     <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-xs flex flex-col justify-between">
-                      <div className="flex items-center justify-between text-neutral-400 mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">Chiffre d&apos;Affaires</span>
-                        <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                          <TrendingUp className="w-4 h-4" />
+                      <div>
+                        <div className="flex items-center justify-between text-neutral-400 mb-2">
+                          <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">Chiffre d'Affaires</span>
+                          <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <TrendingUp className="w-4 h-4" />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-neutral-900 tracking-tight">
+                          {statsLoading ? (
+                            <span className="text-neutral-300 text-base">Chargement...</span>
+                          ) : (
+                            `${totalRevenue.toLocaleString('fr-FR')} FCFA`
+                          )}
                         </div>
                       </div>
-                      <div className="text-2xl font-black text-neutral-900 tracking-tight">
-                        {statsLoading ? (
-                          <span className="text-neutral-300 text-base">Chargement...</span>
-                        ) : (
-                          `${totalRevenue.toLocaleString('fr-FR')} FCFA`
-                        )}
-                      </div>
                       <div className="mt-3 pt-2 border-t border-neutral-100 text-[11px] text-neutral-500">
-                        Total des encaissements
+                        Total des encaissements enregistrés
                       </div>
                     </div>
 
                     {/* Ventes */}
                     <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-xs flex flex-col justify-between">
-                      <div className="flex items-center justify-between text-neutral-400 mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">Ventes enregistrées</span>
-                        <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                          <Receipt className="w-4 h-4" />
+                      <div>
+                        <div className="flex items-center justify-between text-neutral-400 mb-2">
+                          <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">Ventes enregistrées</span>
+                          <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <Receipt className="w-4 h-4" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-2xl font-black text-neutral-900 tracking-tight">
-                        {statsLoading ? (
-                          <span className="text-neutral-300 text-base">Chargement...</span>
-                        ) : (
-                          `${salesCount} reçus`
-                        )}
+                        <div className="text-2xl font-black text-neutral-900 tracking-tight">
+                          {statsLoading ? (
+                            <span className="text-neutral-300 text-base">Chargement...</span>
+                          ) : (
+                            `${salesCount} reçu${salesCount > 1 ? 's' : ''}`
+                          )}
+                        </div>
                       </div>
                       <div className="mt-3 pt-2 border-t border-neutral-100 text-[11px] text-neutral-500">
                         Transactions synchronisées
                       </div>
                     </div>
 
-                    {/* Stock faible */}
+                    {/* Stock faible & Ruptures */}
                     <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-xs flex flex-col justify-between">
-                      <div className="flex items-center justify-between text-neutral-400 mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">Stock Faible</span>
-                        <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                          <AlertTriangle className="w-4 h-4" />
+                      <div>
+                        <div className="flex items-center justify-between text-neutral-400 mb-2">
+                          <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">Alertes Stock</span>
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                            stockMetrics.outOfStockCount > 0 
+                              ? 'bg-rose-50 text-rose-600' 
+                              : stockMetrics.lowStockCount > 0 
+                              ? 'bg-amber-50 text-amber-600' 
+                              : 'bg-emerald-50 text-emerald-600'
+                          }`}>
+                            <AlertTriangle className="w-4 h-4" />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-neutral-900 tracking-tight">
+                          {statsLoading ? (
+                            <span className="text-neutral-300 text-base">Chargement...</span>
+                          ) : (
+                            `${stockMetrics.outOfStockCount + stockMetrics.lowStockCount} alerte${(stockMetrics.outOfStockCount + stockMetrics.lowStockCount) > 1 ? 's' : ''}`
+                          )}
                         </div>
                       </div>
-                      <div className="text-2xl font-black text-neutral-900 tracking-tight">
-                        {statsLoading ? (
-                          <span className="text-neutral-300 text-base">Chargement...</span>
-                        ) : (
-                          `${lowStockProducts.length} alertes`
-                        )}
-                      </div>
                       <div className="mt-3 pt-2 border-t border-neutral-100 text-[11px] text-neutral-500">
-                        {lowStockProducts.length > 0 ? (
-                          <span className="text-amber-700 font-semibold">À réapprovisionner</span>
+                        {stockMetrics.outOfStockCount > 0 ? (
+                          <span className="text-rose-600 font-semibold">{stockMetrics.outOfStockCount} en rupture</span>
+                        ) : stockMetrics.lowStockCount > 0 ? (
+                          <span className="text-amber-700 font-semibold">{stockMetrics.lowStockCount} sous le seuil</span>
                         ) : (
-                          <span className="text-emerald-600 font-semibold">Stock suffisant ✓</span>
+                          <span className="text-emerald-600 font-semibold">Stock optimal ✓</span>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* 3. Raccourcis vers les autres onglets */}
+                {/* 4. Raccourcis vers les autres onglets */}
                 <div>
                   <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-500 mb-3">
                     Raccourcis rapides
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button
-                      onClick={() => setActiveTab('activity')}
+                      onClick={() => handleSelectTab('activity')}
                       className="min-h-[48px] p-4 rounded-2xl bg-white border border-neutral-200/80 hover:border-neutral-300 shadow-2xs hover:shadow-xs text-left flex items-center justify-between group transition-all cursor-pointer"
                     >
                       <div className="flex items-center gap-3.5">
@@ -920,17 +1456,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                           <TrendingUp className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="font-bold text-neutral-900 text-sm">Consulter l&apos;activité</p>
+                          <p className="font-bold text-neutral-900 text-sm">Consulter l'activité</p>
                           <p className="text-xs text-neutral-500">Ventes en direct, catalogue & alertes</p>
                         </div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-neutral-900 transition-colors" />
                     </button>
 
-                    {!isEmployee && (
+                    {!isEmployee ? (
                       <>
                         <button
-                          onClick={() => setActiveTab('subscription')}
+                          onClick={() => handleSelectTab('subscription')}
                           className="min-h-[48px] p-4 rounded-2xl bg-white border border-neutral-200/80 hover:border-neutral-300 shadow-2xs hover:shadow-xs text-left flex items-center justify-between group transition-all cursor-pointer"
                         >
                           <div className="flex items-center gap-3.5">
@@ -938,7 +1474,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                               <CreditCard className="w-5 h-5" />
                             </div>
                             <div>
-                              <p className="font-bold text-neutral-900 text-sm">Gérer l&apos;abonnement</p>
+                              <p className="font-bold text-neutral-900 text-sm">Gérer l'abonnement</p>
                               <p className="text-xs text-neutral-500">Renouveler ou étendre les places employés</p>
                             </div>
                           </div>
@@ -946,7 +1482,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                         </button>
 
                         <button
-                          onClick={() => setActiveTab('team')}
+                          onClick={() => handleSelectTab('team')}
                           className="min-h-[48px] p-4 rounded-2xl bg-white border border-neutral-200/80 hover:border-neutral-300 shadow-2xs hover:shadow-xs text-left flex items-center justify-between group transition-all cursor-pointer"
                         >
                           <div className="flex items-center gap-3.5">
@@ -954,15 +1490,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                               <Users className="w-5 h-5" />
                             </div>
                             <div>
-                              <p className="font-bold text-neutral-900 text-sm">Gérer l&apos;équipe</p>
-                              <p className="text-xs text-neutral-500">Employés rattachés & code d&apos;invitation</p>
+                              <p className="font-bold text-neutral-900 text-sm">Gérer l'équipe</p>
+                              <p className="text-xs text-neutral-500">Employés rattachés & code d'invitation</p>
                             </div>
                           </div>
                           <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-neutral-900 transition-colors" />
                         </button>
 
                         <button
-                          onClick={() => setActiveTab('store_profile')}
+                          onClick={() => handleSelectTab('store_profile')}
                           className="min-h-[48px] p-4 rounded-2xl bg-white border border-neutral-200/80 hover:border-neutral-300 shadow-2xs hover:shadow-xs text-left flex items-center justify-between group transition-all cursor-pointer"
                         >
                           <div className="flex items-center gap-3.5">
@@ -977,15 +1513,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                           <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-neutral-900 transition-colors" />
                         </button>
                       </>
+                    ) : (
+                      <button
+                        onClick={() => handleSelectTab('store_profile')}
+                        className="min-h-[48px] p-4 rounded-2xl bg-white border border-neutral-200/80 hover:border-neutral-300 shadow-2xs hover:shadow-xs text-left flex items-center justify-between group transition-all cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                            <Store className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-neutral-900 text-sm">Boutique et profil</p>
+                            <p className="text-xs text-neutral-500">Coordonnées de la boutique et de votre profil</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-neutral-900 transition-colors" />
+                      </button>
                     )}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ═══════════════════════════════════════════════
-                ONGLET 2 — ACTIVITÉ (LOGIQUE DES STATS CONSERVÉE)
-                ═══════════════════════════════════════════════ */}
             {activeTab === 'activity' && (
               <div 
                 role="tabpanel" 
@@ -993,20 +1542,60 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                 aria-labelledby="tab-btn-activity" 
                 className="space-y-6"
               >
-                <div>
-                  <h2 className="text-xl font-bold text-neutral-900">Activité de la boutique</h2>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    Statistiques des ventes et des stocks synchronisés depuis l&apos;application Android
-                  </p>
+                {/* En-tête de section avec Filtre de période (Fuseau Africa/Dakar UTC+0) */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-neutral-200/80 rounded-2xl p-5 sm:p-6 shadow-xs">
+                  <div>
+                    <h2 className="text-xl font-bold text-neutral-900">Activité de la boutique</h2>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                      Statistiques des ventes et des stocks synchronisés depuis l'application Android (fuseau Africa/Dakar)
+                    </p>
+                  </div>
+
+                  {/* Boutons Sélecteurs de Période (min-h-[48px]) */}
+                  <div className="flex items-center gap-1.5 p-1 bg-neutral-100 rounded-xl shrink-0 self-start sm:self-center">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPeriod('today')}
+                      className={`min-h-[44px] px-3.5 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        selectedPeriod === 'today'
+                          ? 'bg-neutral-900 text-white shadow-xs'
+                          : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60'
+                      }`}
+                    >
+                      Aujourd'hui
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPeriod('7d')}
+                      className={`min-h-[44px] px-3.5 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        selectedPeriod === '7d'
+                          ? 'bg-neutral-900 text-white shadow-xs'
+                          : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60'
+                      }`}
+                    >
+                      7 derniers jours
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPeriod('30d')}
+                      className={`min-h-[44px] px-3.5 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        selectedPeriod === '30d'
+                          ? 'bg-neutral-900 text-white shadow-xs'
+                          : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60'
+                      }`}
+                    >
+                      30 derniers jours
+                    </button>
+                  </div>
                 </div>
 
-                {/* 4 Cartes KPI existantes */}
+                {/* 4 Cartes KPI avec Comparaison Période Précédente */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Card 1: Revenue */}
+                  {/* Card 1: Revenue période */}
                   <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-xs flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between text-neutral-400 mb-2">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">Chiffre d&apos;Affaires</span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">Chiffre d'Affaires</span>
                         <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                           <TrendingUp className="w-4 h-4" />
                         </div>
@@ -1015,16 +1604,36 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                         {statsLoading ? (
                           <span className="text-neutral-300 text-base">Chargement...</span>
                         ) : (
-                          `${totalRevenue.toLocaleString('fr-FR')} FCFA`
+                          `${periodMetrics.currentRevenue.toLocaleString('fr-FR')} FCFA`
                         )}
                       </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-neutral-100 text-[11px] text-neutral-500 font-medium">
-                      Total des encaissements
+
+                    <div className="mt-4 pt-3 border-t border-neutral-100 flex items-center justify-between text-[11px] font-medium">
+                      <span className="text-neutral-500">{periodMetrics.currentLabel}</span>
+                      {periodMetrics.hasPreviousSales ? (
+                        <span className={`inline-flex items-center gap-1 font-bold ${
+                          (periodMetrics.revenueDiffPercent ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                        }`}>
+                          {(periodMetrics.revenueDiffPercent ?? 0) >= 0 ? (
+                            <TrendingUp className="w-3 h-3" />
+                          ) : (
+                            <TrendingDown className="w-3 h-3" />
+                          )}
+                          <span>
+                            {(periodMetrics.revenueDiffPercent ?? 0) >= 0 ? `+${periodMetrics.revenueDiffPercent}%` : `${periodMetrics.revenueDiffPercent}%`}
+                          </span>
+                          <span className="text-[10px] text-neutral-400 font-normal">vs {periodMetrics.previousLabel}</span>
+                        </span>
+                      ) : (
+                        <span className="text-neutral-400 italic text-[10px]">
+                          (0 vente sur {periodMetrics.previousLabel})
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Card 2: Sales Count */}
+                  {/* Card 2: Sales Count période */}
                   <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-xs flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between text-neutral-400 mb-2">
@@ -1037,20 +1646,30 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                         {statsLoading ? (
                           <span className="text-neutral-300 text-base">Chargement...</span>
                         ) : (
-                          `${salesCount} transactions`
+                          `${periodMetrics.currentCount} transaction${periodMetrics.currentCount > 1 ? 's' : ''}`
                         )}
                       </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-neutral-100 text-[11px] text-neutral-500 font-medium">
-                      Nombre total de reçus
+
+                    <div className="mt-4 pt-3 border-t border-neutral-100 flex items-center justify-between text-[11px] font-medium">
+                      <span className="text-neutral-500">
+                        Panier moyen : {periodMetrics.currentCount > 0 ? Math.round(periodMetrics.currentRevenue / periodMetrics.currentCount).toLocaleString('fr-FR') : 0} FCFA
+                      </span>
+                      {periodMetrics.hasPreviousSales && (
+                        <span className={`inline-flex items-center gap-1 font-bold ${
+                          (periodMetrics.countDiffPercent ?? 0) >= 0 ? 'text-blue-600' : 'text-rose-600'
+                        }`}>
+                          {(periodMetrics.countDiffPercent ?? 0) >= 0 ? `+${periodMetrics.countDiffPercent}%` : `${periodMetrics.countDiffPercent}%`}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Card 3: Products */}
+                  {/* Card 3: Catalogue & Valeur du Stock à l'achat */}
                   <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-xs flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between text-neutral-400 mb-2">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">Catalogue Produits</span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">Valeur Stock (Achat)</span>
                         <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
                           <Package className="w-4 h-4" />
                         </div>
@@ -1059,21 +1678,29 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                         {statsLoading ? (
                           <span className="text-neutral-300 text-base">Chargement...</span>
                         ) : (
-                          `${totalProducts} articles`
+                          `${stockMetrics.totalStockValuation.toLocaleString('fr-FR')} FCFA`
                         )}
                       </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-neutral-100 text-[11px] text-neutral-500 font-medium">
-                      Produits référencés
+
+                    <div className="mt-4 pt-3 border-t border-neutral-100 text-[11px] text-neutral-500 font-medium flex items-center justify-between">
+                      <span>{totalProducts} produit{totalProducts > 1 ? 's' : ''} au catalogue</span>
+                      <span className="text-[10px] text-neutral-400">({stockMetrics.valuedProductsCount} valorisé{stockMetrics.valuedProductsCount > 1 ? 's' : ''})</span>
                     </div>
                   </div>
 
-                  {/* Card 4: Low Stock Alert */}
+                  {/* Card 4: Alertes Stock (Ruptures + Faibles) */}
                   <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-xs flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between text-neutral-400 mb-2">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">Stock Faible</span>
-                        <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">Alertes de Stock</span>
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                          stockMetrics.outOfStockCount > 0 
+                            ? 'bg-rose-50 text-rose-600' 
+                            : stockMetrics.lowStockCount > 0 
+                            ? 'bg-amber-50 text-amber-600' 
+                            : 'bg-emerald-50 text-emerald-600'
+                        }`}>
                           <AlertTriangle className="w-4 h-4" />
                         </div>
                       </div>
@@ -1081,66 +1708,279 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                         {statsLoading ? (
                           <span className="text-neutral-300 text-base">Chargement...</span>
                         ) : (
-                          `${lowStockProducts.length} alertes`
+                          `${stockMetrics.outOfStockCount + stockMetrics.lowStockCount} alerte${(stockMetrics.outOfStockCount + stockMetrics.lowStockCount) > 1 ? 's' : ''}`
                         )}
                       </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-neutral-100 text-[11px] text-neutral-500 font-medium">
-                      {lowStockProducts.length > 0 ? (
-                        <span className="text-amber-700 font-semibold">Réapprovisionnement requis</span>
+
+                    <div className="mt-4 pt-3 border-t border-neutral-100 text-[11px] font-medium flex items-center justify-between">
+                      {stockMetrics.outOfStockCount > 0 ? (
+                        <span className="text-rose-600 font-bold">{stockMetrics.outOfStockCount} rupture{stockMetrics.outOfStockCount > 1 ? 's' : ''}</span>
                       ) : (
-                        <span className="text-emerald-600 font-semibold">Stock optimal ✓</span>
+                        <span className="text-emerald-600">0 rupture</span>
+                      )}
+                      {stockMetrics.lowStockCount > 0 ? (
+                        <span className="text-amber-700 font-bold">{stockMetrics.lowStockCount} faible{stockMetrics.lowStockCount > 1 ? 's' : ''}</span>
+                      ) : (
+                        <span className="text-emerald-600">Stock optimal ✓</span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Détails : Stock faible et dernières ventes */}
+                {/* Graphique sobre du chiffre d'affaires par jour (SVG) */}
+                <div className="bg-white border border-neutral-200/80 rounded-2xl p-6 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-4">
+                    <div>
+                      <h3 className="text-base font-bold text-neutral-900 flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4 text-emerald-600" />
+                        <span>Évolution des Encaissements</span>
+                      </h3>
+                      <p className="text-xs text-neutral-500 mt-0.5">
+                        Chiffre d'affaires par {selectedPeriod === 'today' ? 'tranche horaire' : 'jour'} sur {periodMetrics.currentLabel} (fuseau Dakar)
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="text-[11px] text-neutral-400">Total période : </span>
+                        <span className="text-xs font-black text-neutral-900">
+                          {periodMetrics.currentRevenue.toLocaleString('fr-FR')} FCFA
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SVG Chart Container */}
+                  <div className="pt-2">
+                    {periodMetrics.currentRevenue === 0 && chartData.every(d => d.revenue === 0) ? (
+                      <div className="py-12 text-center space-y-2">
+                        <Receipt className="w-8 h-8 text-neutral-300 mx-auto" />
+                        <p className="text-xs text-neutral-500 font-medium">
+                          Aucun encaissement enregistré sur la période : {periodMetrics.currentLabel}.
+                        </p>
+                        <p className="text-[11px] text-neutral-400">
+                          Les transactions saisies sur l'application Android QASH apparaîtront automatiquement ici.
+                        </p>
+                      </div>
+                    ) : (
+                      (() => {
+                        const maxRev = Math.max(...chartData.map(d => d.revenue), 1000);
+                        const count = chartData.length;
+                        const svgWidth = 640;
+                        const svgHeight = 190;
+                        const chartBottom = 150;
+                        const chartTop = 20;
+                        const chartHeight = chartBottom - chartTop;
+                        const paddingX = 40;
+                        const availableWidth = svgWidth - paddingX * 2;
+                        const stepX = availableWidth / count;
+                        const barWidth = Math.max(8, Math.min(36, stepX * 0.65));
+
+                        return (
+                          <div className="space-y-3">
+                            <div className="w-full overflow-x-auto pb-1">
+                              <svg 
+                                viewBox={`0 0 ${svgWidth} ${svgHeight}`} 
+                                className="w-full h-48 sm:h-56 select-none"
+                              >
+                                {/* Guide Lines */}
+                                <line x1={paddingX} y1={chartTop} x2={svgWidth - paddingX} y2={chartTop} stroke="#f1f5f9" strokeDasharray="4 4" />
+                                <text x={paddingX - 6} y={chartTop + 4} textAnchor="end" className="text-[9px] fill-neutral-400">
+                                  {maxRev >= 1000000 ? `${(maxRev / 1000000).toFixed(1)}M` : maxRev >= 1000 ? `${Math.round(maxRev / 1000)}k` : maxRev}
+                                </text>
+
+                                <line x1={paddingX} y1={chartTop + chartHeight / 2} x2={svgWidth - paddingX} y2={chartTop + chartHeight / 2} stroke="#f1f5f9" strokeDasharray="4 4" />
+                                <text x={paddingX - 6} y={chartTop + chartHeight / 2 + 4} textAnchor="end" className="text-[9px] fill-neutral-400">
+                                  {Math.round(maxRev / 2000)}k
+                                </text>
+
+                                <line x1={paddingX} y1={chartBottom} x2={svgWidth - paddingX} y2={chartBottom} stroke="#e2e8f0" strokeWidth="1.5" />
+                                <text x={paddingX - 6} y={chartBottom + 4} textAnchor="end" className="text-[9px] fill-neutral-400">
+                                  0
+                                </text>
+
+                                {/* Bars */}
+                                {chartData.map((d, i) => {
+                                  const barH = d.revenue > 0 ? Math.max(4, (d.revenue / maxRev) * chartHeight) : 0;
+                                  const barX = paddingX + i * stepX + (stepX - barWidth) / 2;
+                                  const barY = chartBottom - barH;
+                                  const isHovered = hoveredPointKey === d.key;
+
+                                  return (
+                                    <g 
+                                      key={d.key} 
+                                      className="cursor-pointer transition-opacity"
+                                      onMouseEnter={() => setHoveredPointKey(d.key)}
+                                      onMouseLeave={() => setHoveredPointKey(null)}
+                                      onClick={() => setHoveredPointKey(hoveredPointKey === d.key ? null : d.key)}
+                                    >
+                                      {/* Invisible hit area for mobile tap */}
+                                      <rect 
+                                        x={paddingX + i * stepX} 
+                                        y={chartTop} 
+                                        width={stepX} 
+                                        height={chartHeight + 30} 
+                                        fill="transparent" 
+                                      />
+
+                                      {/* Bar */}
+                                      {barH > 0 && (
+                                        <rect
+                                          x={barX}
+                                          y={barY}
+                                          width={barWidth}
+                                          height={barH}
+                                          rx={3}
+                                          fill={isHovered ? '#059669' : '#10b981'}
+                                          className="transition-all"
+                                        />
+                                      )}
+
+                                      {/* Label underneath */}
+                                      {(count <= 10 || i % Math.ceil(count / 8) === 0 || i === count - 1) && (
+                                        <text
+                                          x={barX + barWidth / 2}
+                                          y={chartBottom + 16}
+                                          textAnchor="middle"
+                                          className={`text-[10px] font-medium ${isHovered ? 'fill-neutral-900 font-bold' : 'fill-neutral-400'}`}
+                                        >
+                                          {d.shortLabel}
+                                        </text>
+                                      )}
+                                    </g>
+                                  );
+                                })}
+                              </svg>
+                            </div>
+
+                            {/* Active Point Card Details */}
+                            {hoveredPointKey && (() => {
+                              const point = chartData.find(d => d.key === hoveredPointKey);
+                              if (!point) return null;
+                              return (
+                                <div className="p-3 bg-neutral-50 border border-neutral-200/80 rounded-xl flex items-center justify-between text-xs animate-fade-in">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                    <span className="font-bold text-neutral-800">{point.label}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-neutral-500">{point.count} vente{point.count > 1 ? 's' : ''}</span>
+                                    <span className="font-black text-neutral-900">{point.revenue.toLocaleString('fr-FR')} FCFA</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        );
+                      })()
+                    )}
+                  </div>
+                </div>
+
+                {/* Détails : Suivi des stocks avec sous-filtre & Dernières ventes */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Alertes stock */}
+                  {/* Alertes stock avec sous-filtre Rupture vs Faible */}
                   <div className="bg-white border border-neutral-200/80 rounded-2xl p-6 shadow-xs space-y-4 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center justify-between border-b border-neutral-100 pb-4 mb-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-4 mb-4">
                         <h3 className="text-base font-bold text-neutral-900 flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-amber-500" />
-                          <span>Produits en Stock Faible</span>
+                          <span>Suivi des Stocks & Alertes</span>
                         </h3>
-                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-                          {lowStockProducts.length} alerte{lowStockProducts.length > 1 ? 's' : ''}
-                        </span>
+                        {/* Sous-filtre stock */}
+                        <div className="flex items-center gap-1 p-0.5 bg-neutral-100 rounded-lg shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setStockAlertFilter('all')}
+                            className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                              stockAlertFilter === 'all'
+                                ? 'bg-white text-neutral-900 shadow-2xs'
+                                : 'text-neutral-500 hover:text-neutral-800'
+                            }`}
+                          >
+                            Toutes ({stockMetrics.outOfStockCount + stockMetrics.lowStockCount})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setStockAlertFilter('rupture')}
+                            className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                              stockAlertFilter === 'rupture'
+                                ? 'bg-rose-100 text-rose-900 shadow-2xs'
+                                : 'text-neutral-500 hover:text-neutral-800'
+                            }`}
+                          >
+                            Ruptures ({stockMetrics.outOfStockCount})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setStockAlertFilter('faible')}
+                            className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                              stockAlertFilter === 'faible'
+                                ? 'bg-amber-100 text-amber-900 shadow-2xs'
+                                : 'text-neutral-500 hover:text-neutral-800'
+                            }`}
+                          >
+                            Faibles ({stockMetrics.lowStockCount})
+                          </button>
+                        </div>
                       </div>
 
                       {statsLoading ? (
                         <div className="py-8 text-center text-xs text-neutral-400">Analyse du stock...</div>
-                      ) : lowStockProducts.length === 0 ? (
-                        <div className="py-10 text-center text-neutral-400 text-xs font-medium space-y-2">
-                          <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
-                            ✓
-                          </div>
-                          <p>Tous les produits ont un niveau de stock suffisant.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
-                          {lowStockProducts.map((p) => (
-                            <div key={p.id} className="flex items-center justify-between p-3 bg-neutral-50/80 rounded-xl border border-neutral-200/60 text-xs">
-                              <div>
-                                <p className="font-bold text-neutral-900">{p.nom}</p>
-                                <p className="text-[10px] text-neutral-500">Prix : {Number(p.prix_vente).toLocaleString('fr-FR')} FCFA</p>
+                      ) : (() => {
+                        const displayedStockItems = stockAlertFilter === 'rupture'
+                          ? stockMetrics.outOfStockItems
+                          : stockAlertFilter === 'faible'
+                          ? stockMetrics.lowStockItems
+                          : [...stockMetrics.outOfStockItems, ...stockMetrics.lowStockItems];
+
+                        if (displayedStockItems.length === 0) {
+                          return (
+                            <div className="py-10 text-center text-neutral-400 text-xs font-medium space-y-2">
+                              <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                                ✓
                               </div>
-                              <div className="text-right">
-                                <span className="inline-block px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[11px]">
-                                  {p.stock_actuel} restant{Number(p.stock_actuel) > 1 ? 's' : ''}
-                                </span>
-                                <p className="text-[10px] text-neutral-400 mt-0.5">Seuil : {p.seuil_alerte}</p>
-                              </div>
+                              <p>Aucun produit dans cette catégorie d'alerte.</p>
                             </div>
-                          ))}
-                        </div>
-                      )}
+                          );
+                        }
+
+                        return (
+                          <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+                            {displayedStockItems.map((p) => {
+                              const isOutOfStock = Number(p.stock_actuel) <= 0;
+                              return (
+                                <div key={p.id} className="flex items-center justify-between p-3 bg-neutral-50/80 rounded-xl border border-neutral-200/60 text-xs">
+                                  <div>
+                                    <p className="font-bold text-neutral-900">{p.nom}</p>
+                                    <div className="flex items-center gap-2 text-[10px] text-neutral-500 mt-0.5">
+                                      <span>Vente : {Number(p.prix_vente).toLocaleString('fr-FR')} FCFA</span>
+                                      {Number(p.prix_achat) > 0 && (
+                                        <span>· Achat : {Number(p.prix_achat).toLocaleString('fr-FR')} FCFA</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className={`inline-block px-2 py-0.5 rounded font-bold text-[11px] ${
+                                      isOutOfStock 
+                                        ? 'bg-rose-100 text-rose-900' 
+                                        : 'bg-amber-100 text-amber-900'
+                                    }`}>
+                                      {isOutOfStock ? '0 restant (Rupture)' : `${p.stock_actuel} restant${Number(p.stock_actuel) > 1 ? 's' : ''}`}
+                                    </span>
+                                    <p className="text-[10px] text-neutral-400 mt-0.5">Seuil : {p.seuil_alerte}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="pt-3 border-t border-neutral-100 text-[11px] text-neutral-400">
-                      Calculé à partir des seuils d&apos;alerte configurés sur l&apos;application mobile.
+                      Rupture : stock ≤ 0. Stock faible : stock ≤ seuil d'alerte configuré sur Android.
                     </div>
                   </div>
 
@@ -1153,7 +1993,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                           <span>Dernières Ventes Enregistrées</span>
                         </h3>
                         <span className="text-xs font-medium text-neutral-500">
-                          {sales.length} total
+                          {sales.length} transaction{sales.length > 1 ? 's' : ''} au total
                         </span>
                       </div>
 
@@ -1173,11 +2013,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                                 </p>
                                 <p className="text-[10px] text-neutral-500">
                                   {new Date(s.created_at).toLocaleDateString('fr-FR', {
+                                    timeZone: 'UTC',
                                     day: 'numeric',
                                     month: 'short',
                                     hour: '2-digit',
                                     minute: '2-digit'
-                                  })}
+                                  })} (Dakar)
                                 </p>
                               </div>
                               <div className="text-right">
@@ -1192,7 +2033,44 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                     </div>
 
                     <div className="pt-3 border-t border-neutral-100 text-[11px] text-neutral-400">
-                      Mises à jour en direct depuis l&apos;application Android et Supabase.
+                      Mises à jour en direct depuis l'application Android et Supabase.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Encart analyses avancées - Honnête et sans fausse donnée */}
+                <div className="bg-gradient-to-r from-neutral-900 to-neutral-800 text-white rounded-2xl p-6 border border-neutral-700 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-neutral-800 text-amber-400 flex items-center justify-center border border-neutral-700">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white">Analyses de rentabilité & Meilleures ventes</h4>
+                        <p className="text-xs text-neutral-400">Indicateurs avancés de gestion commerciale</p>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 w-fit">
+                      <span>Bientôt disponible : nécessite la synchronisation du détail des ventes</span>
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-neutral-300 leading-relaxed">
+                    La table des ventes enregistre actuellement le montant global de chaque reçu. Les calculs de la <strong>marge brute</strong>, du <strong>bénéfice net</strong> et du classement des <strong>produits les plus vendus</strong> seront automatiquement activés dès la mise en ligne de la synchronisation ligne à ligne des articles depuis l'application mobile Android QASH.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div className="p-3 rounded-xl bg-neutral-800/80 border border-neutral-700/80">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Articles les plus vendus</div>
+                      <div className="text-xs text-neutral-400 mt-1 italic">En attente du détail des lignes</div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-neutral-800/80 border border-neutral-700/80">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Marge brute commerciale</div>
+                      <div className="text-xs text-neutral-400 mt-1 italic">En attente du détail des lignes</div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-neutral-800/80 border border-neutral-700/80">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Bénéfice net estimé</div>
+                      <div className="text-xs text-neutral-400 mt-1 italic">En attente du détail des lignes</div>
                     </div>
                   </div>
                 </div>
@@ -1205,7 +2083,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                       <span>Synchronisation QASH Android & Web</span>
                     </div>
                     <p className="text-xs text-neutral-300 leading-relaxed max-w-2xl">
-                      Toutes les ventes réalisées par votre équipe depuis leurs téléphones Android apparaissent instantanément sur cette console. L&apos;authentification et la base de données sont unifiées.
+                      Toutes les ventes réalisées par votre équipe depuis leurs téléphones Android apparaissent instantanément sur cette console. L'authentification et la base de données sont unifiées.
                     </p>
                   </div>
                   <div className="shrink-0 flex items-center gap-2 text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-3 py-1.5 rounded-xl">
@@ -1216,9 +2094,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               </div>
             )}
 
-            {/* ═══════════════════════════════════════════════
-                ONGLET 3 — ABONNEMENT (AVEC OPTION ÉTENDRE PARTIE 2)
-                ═══════════════════════════════════════════════ */}
             {activeTab === 'subscription' && !isEmployee && (
               <div 
                 role="tabpanel" 
@@ -1510,6 +2385,96 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                     </div>
                   )}
                 </div>
+
+                {/* 4. Historique des Règlements (table payments) */}
+                <div className="bg-white border border-neutral-200/80 rounded-2xl p-6 sm:p-8 shadow-xs space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-4">
+                    <div>
+                      <h3 className="text-base font-bold text-neutral-900 flex items-center gap-2">
+                        <Receipt className="w-4 h-4 text-emerald-600" />
+                        <span>Historique des Règlements</span>
+                      </h3>
+                      <p className="text-xs text-neutral-500 mt-0.5">
+                        Transactions et reçus de paiement enregistrés pour votre boutique
+                      </p>
+                    </div>
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-700 w-fit">
+                      {payments.length} règlement{payments.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  {paymentsLoading ? (
+                    <div className="py-8 flex flex-col items-center justify-center gap-2 text-neutral-400 text-xs">
+                      <Loader2 className="w-5 h-5 animate-spin text-neutral-500" />
+                      <span>Chargement des règlements...</span>
+                    </div>
+                  ) : paymentsError ? (
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                      Impossible de charger l'historique des règlements : {paymentsError}
+                    </div>
+                  ) : payments.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-neutral-400 font-medium space-y-1">
+                      <CreditCard className="w-8 h-8 text-neutral-300 mx-auto" />
+                      <p>Aucun règlement enregistré pour cette boutique.</p>
+                      <p className="text-[11px] text-neutral-400">Vos prochains paiements d'abonnement apparaîtront ici.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                      {payments.map((p) => {
+                        const isCompleted = p.status?.toLowerCase() === 'complete' || p.status?.toLowerCase() === 'completed';
+                        const isExtend = p.kind === 'extend';
+                        return (
+                          <div
+                            key={p.id}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-neutral-50/70 hover:bg-neutral-50 rounded-xl border border-neutral-200/60 text-xs gap-3 transition-colors"
+                          >
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${
+                                  isExtend ? 'bg-purple-100 text-purple-900' : 'bg-blue-100 text-blue-900'
+                                }`}>
+                                  {isExtend
+                                    ? `Extension (+${p.seats || 1} place${(p.seats || 1) > 1 ? 's' : ''})`
+                                    : `Renouvellement ${p.period_days ? `(${Math.round(p.period_days / 30)} mois)` : ''}`}
+                                </span>
+                                <span className="font-mono text-[10px] text-neutral-400 uppercase">
+                                  N° {String(p.id).substring(0, 8)}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-neutral-500">
+                                {new Date(p.created_at).toLocaleDateString('fr-FR', {
+                                  timeZone: 'UTC',
+                                  day: 'numeric',
+                                  month: 'long',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })} (fuseau Dakar)
+                              </p>
+                            </div>
+                            <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1 shrink-0">
+                              <span className="text-sm font-black text-neutral-900">
+                                {Number(p.amount).toLocaleString('fr-FR')} FCFA
+                              </span>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                                isCompleted 
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-neutral-100 text-neutral-600 border border-neutral-200'
+                              }`}>
+                                {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                                {isCompleted ? 'Confirmé' : p.status}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="pt-3 border-t border-neutral-100 text-[11px] text-neutral-400">
+                    Seuls les règlements confirmés par le serveur de paiement sont comptabilisés.
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1658,7 +2623,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             {/* ═══════════════════════════════════════════════
                 ONGLET 5 — BOUTIQUE ET PROFIL (LECTURE SEULE)
                 ═══════════════════════════════════════════════ */}
-            {activeTab === 'store_profile' && !isEmployee && (
+            {activeTab === 'store_profile' && (
               <div 
                 role="tabpanel" 
                 id="tabpanel-store_profile" 
@@ -1835,6 +2800,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               {availableTabs.map((tab, idx) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
+                const tabBadgeCount = tab.id === 'activity' 
+                  ? (stockMetrics.outOfStockCount + stockMetrics.lowStockCount)
+                  : tab.id === 'subscription' && (subscription?.status === 'grace' || subscription?.status === 'expired' || daysRemaining <= 5)
+                  ? 1
+                  : 0;
+
                 return (
                   <button
                     key={tab.id}
@@ -1843,7 +2814,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                     aria-selected={isActive}
                     aria-controls={`tabpanel-${tab.id}`}
                     tabIndex={isActive ? 0 : -1}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleSelectTab(tab.id)}
                     onKeyDown={(e) => handleTabKeyDown(e, idx)}
                     className={`min-h-[48px] w-full p-3 rounded-xl text-left flex items-center gap-3 transition-all cursor-pointer border ${
                       isActive
@@ -1857,9 +2828,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className={`text-xs font-bold leading-none ${isActive ? 'text-white' : 'text-neutral-900'}`}>
-                        {tab.label}
-                      </p>
+                      <div className="flex items-center justify-between gap-1">
+                        <p className={`text-xs font-bold leading-none ${isActive ? 'text-white' : 'text-neutral-900'}`}>
+                          {tab.label}
+                        </p>
+                        {tabBadgeCount > 0 && (
+                          <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                            isActive ? 'bg-rose-500 text-white' : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            {tabBadgeCount}
+                          </span>
+                        )}
+                      </div>
                       <p className={`text-[10px] mt-1 truncate ${isActive ? 'text-neutral-300' : 'text-neutral-400'}`}>
                         {tab.description}
                       </p>
