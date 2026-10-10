@@ -37,7 +37,10 @@ import {
   AlertCircle,
   Bell,
   Filter,
-  BarChart3
+  BarChart3,
+  Settings,
+  ChevronDown,
+  HelpCircle
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -93,7 +96,10 @@ interface StoreEmployeeItem {
   created_at?: string;
 }
 
-type TabId = 'overview' | 'activity' | 'subscription' | 'team' | 'store_profile';
+type TabId = 'overview' | 'activity' | 'subscription' | 'team' | 'store_profile' | 'settings_help';
+
+// Adresse de contact officielle (déjà utilisée dans les pages CGU, suppression de compte et paiement)
+const CONTACT_EMAIL = 'contact@qashapp.com';
 
 interface TabDefinition {
   id: TabId;
@@ -127,6 +133,9 @@ const TAB_PARAM_MAP: Record<string, TabId> = {
   'boutique-profil': 'store_profile',
   'boutique_profil': 'store_profile',
   'store_profile': 'store_profile',
+  'parametres-aide': 'settings_help',
+  'parametres_aide': 'settings_help',
+  'settings_help': 'settings_help',
 };
 
 const TAB_TO_PARAM: Record<TabId, string> = {
@@ -135,6 +144,7 @@ const TAB_TO_PARAM: Record<TabId, string> = {
   subscription: 'abonnement',
   team: 'equipe',
   store_profile: 'boutique-profil',
+  settings_help: 'parametres-aide',
 };
 
 const GERANT_TABS: TabDefinition[] = [
@@ -143,13 +153,30 @@ const GERANT_TABS: TabDefinition[] = [
   { id: 'subscription', label: 'Abonnement', icon: CreditCard, description: 'Statut & extension' },
   { id: 'team', label: 'Équipe', icon: Users, description: 'Collaborateurs & code' },
   { id: 'store_profile', label: 'Boutique et profil', icon: Store, description: 'Coordonnées du compte' },
+  { id: 'settings_help', label: 'Paramètres et aide', icon: Settings, description: 'Compte, FAQ & contact' },
 ];
 
 const EMPLOYEE_TABS: TabDefinition[] = [
   { id: 'overview', label: "Vue d'ensemble", icon: LayoutDashboard, description: 'Résumé & statut' },
   { id: 'activity', label: 'Activité', icon: TrendingUp, description: 'Chiffre, ventes & stock' },
   { id: 'store_profile', label: 'Boutique et profil', icon: Store, description: 'Coordonnées du compte' },
+  { id: 'settings_help', label: 'Paramètres et aide', icon: Settings, description: 'Compte, FAQ & contact' },
 ];
+
+// Dernière vente affichée en fuseau Africa/Dakar
+function formatDateTimeDakar(dateStr?: string | null): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleString('fr-FR', {
+    timeZone: 'Africa/Dakar',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 /**
  * Traduction française des types d'activité boutique
@@ -278,6 +305,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [sales, setSales] = useState<SaleItem[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
+
+  // Paramètres et aide : réinitialisation du mot de passe et FAQ
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [openFaqId, setOpenFaqId] = useState<string | null>(null);
 
   // Section "Étendre" (ajout de places employés)
   const [seatsToAdd, setSeatsToAdd] = useState<number>(1);
@@ -450,10 +483,24 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         setStatsError(null);
 
         // Fetch Products
-        const { data: productsData, error: productsErr } = await supabase
-          .from('products')
-          .select('*')
-          .eq('store_code', storeCode);
+        // Chargement paginé (Supabase limite chaque requête à 1000 lignes) : jamais de troncature silencieuse
+        const fetchAllRows = async (table: 'products' | 'sales') => {
+          const PAGE = 1000;
+          const MAX_PAGES = 50;
+          const all: any[] = [];
+          for (let page = 0; page < MAX_PAGES; page++) {
+            let q = supabase.from(table).select('*').eq('store_code', storeCode);
+            if (table === 'sales') q = q.order('created_at', { ascending: false }).order('id', { ascending: true });
+            else q = q.order('id', { ascending: true });
+            const { data, error } = await q.range(page * PAGE, page * PAGE + PAGE - 1);
+            if (error) return { data: null as any[] | null, error };
+            all.push(...(data || []));
+            if (!data || data.length < PAGE) break;
+          }
+          return { data: all, error: null as any };
+        };
+
+        const { data: productsData, error: productsErr } = await fetchAllRows('products');
 
         if (productsErr) {
           console.error('Erreur chargement produits:', productsErr);
@@ -462,11 +509,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         }
 
         // Fetch Sales
-        const { data: salesData, error: salesErr } = await supabase
-          .from('sales')
-          .select('*')
-          .eq('store_code', storeCode)
-          .order('created_at', { ascending: false });
+        const { data: salesData, error: salesErr } = await fetchAllRows('sales');
 
         if (salesErr) {
           console.error('Erreur chargement ventes:', salesErr);
@@ -650,6 +693,36 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const handleSignOut = async () => {
     await signOut();
     onNavigate('/login');
+  };
+
+  // Changement de mot de passe : e-mail de réinitialisation envoyé par Supabase Auth
+  const handleResetPassword = async () => {
+    const accountEmail = user?.email;
+    if (!accountEmail || resetLoading) return;
+    setResetLoading(true);
+    setResetMessage(null);
+    setResetError(null);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(accountEmail, {
+        redirectTo: window.location.origin + '/auth/callback',
+      });
+      if (error) {
+        console.warn('Erreur resetPasswordForEmail:', error);
+        const status = (error as any)?.status;
+        setResetError(
+          status === 429
+            ? 'Trop de demandes. Patientez quelques minutes avant de réessayer.'
+            : "L'e-mail n'a pas pu être envoyé pour le moment. Réessayez plus tard."
+        );
+      } else {
+        setResetMessage('Si cette adresse existe, un e-mail vient d\'être envoyé.');
+      }
+    } catch (err: any) {
+      console.warn('Exception resetPasswordForEmail:', err);
+      setResetError("L'e-mail n'a pas pu être envoyé pour le moment. Vérifiez votre connexion et réessayez.");
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const handleRefreshAll = () => {
@@ -979,8 +1052,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     return list;
   }, [stockMetrics, subscription, isEmployee, employees.length]);
 
+  // Dernière vente synchronisée : created_at le plus récent de sales
+  const lastSaleAt = useMemo(() => {
+    let latest = 0;
+    for (const s of sales) {
+      const t = new Date(s.created_at).getTime();
+      if (!isNaN(t) && t > latest) latest = t;
+    }
+    return latest > 0 ? new Date(latest).toISOString() : null;
+  }, [sales]);
+  const lastSaleOlderThan24h = lastSaleAt
+    ? Date.now() - new Date(lastSaleAt).getTime() > 24 * 60 * 60 * 1000
+    : false;
+
   // Variables globales de base
-  const totalRevenue = useMemo(() => sales.reduce((sum, s) => sum + (Number(s.amount) || 0), 0), [sales]);
+  const totalRevenue =useMemo(() => sales.reduce((sum, s) => sum + (Number(s.amount) || 0), 0), [sales]);
   const salesCount = sales.length;
   const totalProducts = products.length;
   const lowStockProducts = useMemo(() => 
@@ -999,6 +1085,85 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const usedSeatsCount = employees.length > 0 ? employees.length : (subscription?.employee_count ?? 0);
 
   const availableTabs = isEmployee ? EMPLOYEE_TABS : GERANT_TABS;
+
+  // FAQ de l'onglet Paramètres et aide (réponses alignées sur les règles réelles du service)
+  const faqItems: Array<{ id: string; question: string; answer: React.ReactNode }> = [
+    {
+      id: 'essai',
+      question: "Comment fonctionne l'essai gratuit de 3 jours ?",
+      answer: "À la création de votre boutique, vous bénéficiez d'un essai gratuit de 3 jours pour découvrir QASH. Pendant l'essai, l'ajout de places employés supplémentaires n'est pas disponible : il faut d'abord activer un abonnement payant.",
+    },
+    {
+      id: 'payer',
+      question: 'Comment payer mon abonnement ?',
+      answer: (
+        <>
+          Le paiement se fait sur le site, depuis la page{' '}
+          <button
+            type="button"
+            onClick={() => onNavigate('/pricing')}
+            className="font-bold underline cursor-pointer text-rose-700 hover:text-rose-800"
+          >
+            Tarifs
+          </button>
+          . Le montant affiché est calculé par le serveur. Seul le gérant de la boutique peut payer.
+        </>
+      ),
+    },
+    {
+      id: 'duree',
+      question: "Les jours s'écoulent-ils si je n'utilise pas l'application ?",
+      answer: "Oui. L'abonnement est une période calendaire fixée par le serveur : les jours s'écoulent en continu, même si l'application n'est pas utilisée.",
+    },
+    {
+      id: 'employe',
+      question: 'Comment ajouter un employé et que sont les places payées ?',
+      answer: "Chaque employé occupe une place payée. Communiquez votre code d'invitation (onglet Équipe) à votre collaborateur : il le saisit dans l'application Android QASH pour rejoindre votre boutique. Si toutes les places payées sont occupées, le gérant peut en ajouter depuis l'onglet Abonnement, tant que l'abonnement est actif.",
+    },
+    {
+      id: 'expiration',
+      question: "Que se passe-t-il quand l'abonnement expire ?",
+      answer: "Après la période de grâce de 3 jours, l'accès est bloqué tant que l'abonnement n'est pas renouvelé. Vos données sont conservées et redeviennent accessibles dès le renouvellement.",
+    },
+    {
+      id: 'hors-ligne',
+      question: "Puis-je vendre sans connexion Internet ?",
+      answer: "Oui, l'application Android enregistre vos ventes localement. Elles apparaissent sur ce site après leur synchronisation depuis l'application, dès que la connexion revient. Utilisez le bouton « Actualiser » pour recharger les données.",
+    },
+    {
+      id: 'suppression',
+      question: 'Comment supprimer mon compte ?',
+      answer: (
+        <>
+          La demande se fait depuis la page{' '}
+          <button
+            type="button"
+            onClick={() => onNavigate('/suppression-compte')}
+            className="font-bold underline cursor-pointer text-rose-700 hover:text-rose-800"
+          >
+            Suppression de compte
+          </button>
+          , qui prépare un e-mail à envoyer à notre équipe.
+        </>
+      ),
+    },
+    {
+      id: 'contact',
+      question: "Comment contacter l'équipe QASH ?",
+      answer: (
+        <>
+          Écrivez-nous à{' '}
+          <a
+            href={`mailto:${CONTACT_EMAIL}`}
+            className="font-bold underline text-rose-700 hover:text-rose-800"
+          >
+            {CONTACT_EMAIL}
+          </a>
+          .
+        </>
+      ),
+    },
+  ];
 
   // Clavier tablist
   const handleTabKeyDown = (e: React.KeyboardEvent, index: number) => {
@@ -1105,6 +1270,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           </div>
 
           <div className="flex items-center gap-3 shrink-0 flex-wrap">
+            <button
+              type="button"
+              onClick={() => handleSelectTab('overview')}
+              aria-label={
+                notifications.length > 0
+                  ? `Alertes : ${notifications.length} à consulter dans la vue d'ensemble`
+                  : "Alertes : aucune alerte, ouvrir la vue d'ensemble"
+              }
+              className="relative min-h-[48px] min-w-[48px] px-3 py-2.5 bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-[0.98] focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+            >
+              <Bell className="w-5 h-5" />
+              {notifications.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-rose-600 text-white text-[11px] font-bold flex items-center justify-center border-2 border-white">
+                  {notifications.length}
+                </span>
+              )}
+            </button>
             <button
               onClick={handleRefreshAll}
               disabled={profileLoading || subscriptionLoading || storeLoading || statsLoading || employeesLoading}
@@ -1265,7 +1447,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                {/* 2. Centre d'Alertes & Notifications en direct */}
+                {/* 2. Centre d'Alertes & Notifications */}
                 <div className="bg-white border border-neutral-200/80 rounded-2xl p-6 shadow-xs space-y-4">
                   <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
                     <div className="flex items-center gap-2.5">
@@ -1273,8 +1455,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                         <Bell className="w-4 h-4 text-neutral-700" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-neutral-900">Alertes & Notifications en direct</h3>
-                        <p className="text-xs text-neutral-500">Synthèse basée sur l'état réel de vos stocks et de votre abonnement</p>
+                        <h3 className="text-sm font-bold text-neutral-900">Alertes et notifications</h3>
+                        <p className="text-xs text-neutral-500">Synthèse calculée à partir des dernières données synchronisées (stocks et abonnement)</p>
                       </div>
                     </div>
                     <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
@@ -1457,7 +1639,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                         </div>
                         <div>
                           <p className="font-bold text-neutral-900 text-sm">Consulter l'activité</p>
-                          <p className="text-xs text-neutral-500">Ventes en direct, catalogue & alertes</p>
+                          <p className="text-xs text-neutral-500">Ventes synchronisées, catalogue & alertes</p>
                         </div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-neutral-900 transition-colors" />
@@ -1588,6 +1770,49 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                     </button>
                   </div>
                 </div>
+
+                {/* Dernière vente synchronisée (gérant : les ventes ne sont chargées que pour le gérant) */}
+                {!isEmployee && (
+                  <div className="bg-white border border-neutral-200/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3.5 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-neutral-100 text-neutral-700 flex items-center justify-center shrink-0">
+                        <Receipt className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                          Dernière vente synchronisée
+                        </p>
+                        {statsLoading ? (
+                          <p className="text-sm text-neutral-400 mt-0.5">Chargement...</p>
+                        ) : lastSaleAt ? (
+                          <>
+                            <p className="text-base font-bold text-neutral-900 mt-0.5">
+                              {formatDateTimeDakar(lastSaleAt)} <span className="text-xs font-medium text-neutral-500">(fuseau Africa/Dakar)</span>
+                            </p>
+                            {lastSaleOlderThan24h && (
+                              <p className="text-xs text-neutral-600 mt-1 leading-relaxed">
+                                Les ventes faites hors ligne apparaissent après leur synchronisation depuis l&apos;application.
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm text-neutral-600 mt-0.5 leading-relaxed">
+                            Vos statistiques apparaîtront ici lorsque vos premières ventes seront synchronisées.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRefreshAll}
+                      disabled={profileLoading || subscriptionLoading || storeLoading || statsLoading || employeesLoading}
+                      className="self-start sm:self-center shrink-0 min-h-[48px] px-4 py-2.5 bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-2xs active:scale-[0.98] disabled:opacity-50 focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${statsLoading ? 'animate-spin text-rose-500' : ''}`} />
+                      <span>Actualiser</span>
+                    </button>
+                  </div>
+                )}
 
                 {/* 4 Cartes KPI avec Comparaison Période Précédente */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1760,7 +1985,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                           Aucun encaissement enregistré sur la période : {periodMetrics.currentLabel}.
                         </p>
                         <p className="text-[11px] text-neutral-400">
-                          Les transactions saisies sur l'application Android QASH apparaîtront automatiquement ici.
+                          Les transactions saisies sur l'application Android QASH apparaîtront ici après leur synchronisation.
                         </p>
                       </div>
                     ) : (
@@ -2033,7 +2258,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                     </div>
 
                     <div className="pt-3 border-t border-neutral-100 text-[11px] text-neutral-400">
-                      Mises à jour en direct depuis l'application Android et Supabase.
+                      Données synchronisées depuis l'application Android. Utilisez « Actualiser » pour les recharger.
                     </div>
                   </div>
                 </div>
@@ -2083,12 +2308,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                       <span>Synchronisation QASH Android & Web</span>
                     </div>
                     <p className="text-xs text-neutral-300 leading-relaxed max-w-2xl">
-                      Toutes les ventes réalisées par votre équipe depuis leurs téléphones Android apparaissent instantanément sur cette console. L'authentification et la base de données sont unifiées.
+                      Les ventes réalisées par votre équipe depuis leurs téléphones Android apparaissent sur cette console après leur synchronisation depuis l'application. Utilisez « Actualiser » pour recharger les données.
                     </p>
                   </div>
                   <div className="shrink-0 flex items-center gap-2 text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-3 py-1.5 rounded-xl">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>Base Live & Connectée</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span>Compte connecté</span>
                   </div>
                 </div>
               </div>
@@ -2777,6 +3002,181 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                   <div className="pt-3 border-t border-neutral-100 text-[11px] text-neutral-400">
                     Rôle actuel : <strong className="text-neutral-700">{userRole}</strong>. Consultation sécurisée sans modification directe sur le web.
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════
+                ONGLET 6 — PARAMÈTRES ET AIDE (GÉRANT ET EMPLOYÉ)
+                ═══════════════════════════════════════════════ */}
+            {activeTab === 'settings_help' && (
+              <div
+                role="tabpanel"
+                id="tabpanel-settings_help"
+                aria-labelledby="tab-btn-settings_help"
+                className="space-y-6"
+              >
+                {/* 1. Profil en lecture seule + sécurité du compte */}
+                <div className="bg-white border border-neutral-200/80 rounded-2xl p-6 sm:p-8 shadow-xs space-y-5">
+                  <div className="flex items-center gap-3 border-b border-neutral-100 pb-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                      <UserIcon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-neutral-900">Mon compte</h2>
+                      <p className="text-xs text-neutral-500">Informations du profil (lecture seule)</p>
+                    </div>
+                  </div>
+
+                  {profileLoading ? (
+                    <div className="space-y-3 animate-pulse">
+                      <div className="h-10 bg-neutral-100 rounded-lg"></div>
+                      <div className="h-10 bg-neutral-100 rounded-lg"></div>
+                      <div className="h-10 bg-neutral-100 rounded-lg"></div>
+                    </div>
+                  ) : profileError ? (
+                    <div className="p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl text-neutral-600 text-xs">
+                      {profileError}
+                    </div>
+                  ) : (
+                    <dl className="space-y-3.5 text-xs sm:text-sm">
+                      <div className="flex items-start justify-between py-2 border-b border-neutral-100 gap-4">
+                        <dt className="text-neutral-500 font-medium">Prénom</dt>
+                        <dd className="font-bold text-neutral-900 text-right">{firstName || 'Non renseigné'}</dd>
+                      </div>
+                      <div className="flex items-start justify-between py-2 border-b border-neutral-100 gap-4">
+                        <dt className="text-neutral-500 font-medium">Nom</dt>
+                        <dd className="font-bold text-neutral-900 text-right">{lastName || 'Non renseigné'}</dd>
+                      </div>
+                      <div className="flex items-start justify-between py-2 border-b border-neutral-100 gap-4">
+                        <dt className="text-neutral-500 font-medium">Téléphone</dt>
+                        <dd className="font-bold text-neutral-900 text-right">{phone || 'Non renseigné'}</dd>
+                      </div>
+                      <div className="flex items-start justify-between py-2 border-b border-neutral-100 gap-4">
+                        <dt className="text-neutral-500 font-medium">E-mail</dt>
+                        <dd className="font-semibold text-neutral-800 text-right break-all">{user?.email || '—'}</dd>
+                      </div>
+                      <div className="flex items-start justify-between py-2 gap-4">
+                        <dt className="text-neutral-500 font-medium">Rôle</dt>
+                        <dd className="font-bold text-neutral-900 text-right">{isEmployee ? 'Employé' : 'Gérant'}</dd>
+                      </div>
+                    </dl>
+                  )}
+
+                  <div className="pt-4 border-t border-neutral-100 space-y-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        type="button"
+                        onClick={handleResetPassword}
+                        disabled={resetLoading || !user?.email}
+                        className="min-h-[48px] px-5 py-3 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+                      >
+                        {resetLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Envoi en cours...</span>
+                          </>
+                        ) : (
+                          <>
+                            <KeyRound className="w-4 h-4" />
+                            <span>Changer mon mot de passe</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="min-h-[48px] px-5 py-3 bg-neutral-100 text-neutral-700 hover:bg-neutral-200/80 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer border border-neutral-200/50 active:scale-[0.98] focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Se déconnecter</span>
+                      </button>
+                    </div>
+
+                    <div aria-live="polite">
+                      {resetMessage && (
+                        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm flex items-start gap-2.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          <p>{resetMessage}</p>
+                        </div>
+                      )}
+                      {resetError && (
+                        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm flex items-start gap-2.5">
+                          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                          <p>{resetError}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. FAQ en accordéon (accessible au clavier) */}
+                <div className="bg-white border border-neutral-200/80 rounded-2xl p-6 sm:p-8 shadow-xs space-y-5">
+                  <div className="flex items-center gap-3 border-b border-neutral-100 pb-4">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                      <HelpCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-neutral-900">Questions fréquentes</h2>
+                      <p className="text-xs text-neutral-500">Les réponses aux questions les plus courantes</p>
+                    </div>
+                  </div>
+
+                  <div className="divide-y divide-neutral-100 border border-neutral-200/80 rounded-xl overflow-hidden">
+                    {faqItems.map((item) => {
+                      const isOpen = openFaqId === item.id;
+                      return (
+                        <div key={item.id}>
+                          <h3>
+                            <button
+                              type="button"
+                              id={`faq-btn-${item.id}`}
+                              aria-expanded={isOpen}
+                              aria-controls={`faq-panel-${item.id}`}
+                              onClick={() => setOpenFaqId(isOpen ? null : item.id)}
+                              className="w-full min-h-[48px] px-4 py-3.5 flex items-center justify-between gap-4 text-left text-sm font-bold text-neutral-900 hover:bg-neutral-50 transition-colors cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-500"
+                            >
+                              <span>{item.question}</span>
+                              <ChevronDown
+                                className={`w-4 h-4 shrink-0 text-neutral-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                                aria-hidden="true"
+                              />
+                            </button>
+                          </h3>
+                          {isOpen && (
+                            <div
+                              id={`faq-panel-${item.id}`}
+                              role="region"
+                              aria-labelledby={`faq-btn-${item.id}`}
+                              className="px-4 pb-4 text-xs sm:text-sm text-neutral-600 leading-relaxed"
+                            >
+                              {item.answer}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Contact */}
+                <div className="bg-white border border-neutral-200/80 rounded-2xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-neutral-900">Besoin d&apos;aide ?</h2>
+                      <p className="text-xs text-neutral-500">Notre équipe vous répond par e-mail.</p>
+                    </div>
+                  </div>
+                  <a
+                    href={`mailto:${CONTACT_EMAIL}`}
+                    className="self-start sm:self-center min-h-[48px] px-5 py-3 bg-white border border-neutral-200 text-neutral-800 hover:bg-neutral-50 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-rose-500 break-all"
+                  >
+                    <Mail className="w-4 h-4 shrink-0" />
+                    <span>{CONTACT_EMAIL}</span>
+                  </a>
                 </div>
               </div>
             )}
