@@ -73,17 +73,41 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   onClick={() => onNavigate('/privacy')}
-                  className="hover:text-qash-red-500 transition-colors cursor-pointer"
+                  className="hover:text-qash-red-500 transition-colors cursor-pointer text-left"
                 >
                   Politique de confidentialité
                 </button>
               </li>
               <li>
                 <button
+                  onClick={() => onNavigate('/cgu')}
+                  className="hover:text-qash-red-500 transition-colors cursor-pointer text-left"
+                >
+                  Conditions Générales d&apos;Utilisation (CGU)
+                </button>
+              </li>
+              <li>
+                <button
                   onClick={() => onNavigate('/legal')}
-                  className="hover:text-qash-red-500 transition-colors cursor-pointer"
+                  className="hover:text-qash-red-500 transition-colors cursor-pointer text-left"
                 >
                   Mentions légales
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate('/suppression-compte')}
+                  className="hover:text-qash-red-500 transition-colors cursor-pointer text-left"
+                >
+                  Suppression du compte
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate('/cookies')}
+                  className="hover:text-qash-red-500 transition-colors cursor-pointer text-left"
+                >
+                  Cookies et traceurs
                 </button>
               </li>
             </ul>

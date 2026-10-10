@@ -1,34 +1,108 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, ArrowRight, HelpCircle, Smartphone, ExternalLink, Mail } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle2, ArrowRight, HelpCircle, Smartphone, Clock } from 'lucide-react';
 import { QashLogo } from '../components/QashLogo';
-import { PageRoute } from '../types';
+import { PageRoute, MySubscriptionData } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface PaymentSuccessPageProps {
   onNavigate: (route: PageRoute) => void;
 }
 
+type SyncState = 'pending' | 'confirmed' | 'timeout';
+
+function formatDateFrench(dateStr?: string | null): string {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr || '';
+  }
+}
+
+function isFutureDate(dateStr?: string | null): boolean {
+  if (!dateStr) return false;
+  const t = new Date(dateStr).getTime();
+  return !isNaN(t) && t > Date.now();
+}
+
 export const PaymentSuccessPage: React.FC<PaymentSuccessPageProps> = ({ onNavigate }) => {
+  const [syncState, setSyncState] = useState<SyncState>('pending');
+  const [confirmedDate, setConfirmedDate] = useState<string | null>(null);
   const [showAndroidFallback, setShowAndroidFallback] = useState(false);
 
-  // Extract reference '?o=...' from URL search query
-  const shortReference = useMemo(() => {
-    if (typeof window === 'undefined') return null;
-    const params = new URLSearchParams(window.location.search);
-    const rawRef = params.get('o') || params.get('order_id') || params.get('ref');
-    if (!rawRef) return null;
-    
-    const trimmed = rawRef.trim();
-    if (!trimmed) return null;
-    
-    // Strict rule: Show at most the last 6 characters
-    const last6 = trimmed.length > 6 ? trimmed.slice(-6) : trimmed;
-    return `…${last6}`;
+  // Poll get_my_subscription if user is logged in (every 3s, max 60s, cancelable setTimeout)
+  useEffect(() => {
+    let isMounted = true;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+    const startTime = Date.now();
+    const MAX_DURATION_MS = 60000; // 60 seconds
+    const INTERVAL_MS = 3000; // 3 seconds
+
+    async function checkSubscription() {
+      if (!isMounted) return;
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session || !isMounted) {
+          // Non-logged-in visitor: no polling, maintain default pending state
+          return;
+        }
+
+        const { data, error } = await supabase.rpc('get_my_subscription');
+        if (!isMounted) return;
+
+        if (!error && data) {
+          const sub = data as MySubscriptionData;
+          const targetDate = sub.current_period_end || sub.access_until;
+
+          if (sub.status === 'active' && isFutureDate(targetDate)) {
+            setConfirmedDate(targetDate || null);
+            setSyncState('confirmed');
+            return; // Confirmation achieved, stop polling
+          }
+        }
+      } catch (err) {
+        console.warn('Vérification abonnement:', err);
+      }
+
+      if (!isMounted) return;
+
+      // Check 60s expiration
+      if (Date.now() - startTime >= MAX_DURATION_MS) {
+        setSyncState('timeout');
+        return;
+      }
+
+      // Schedule next poll in 3s
+      timerId = setTimeout(checkSubscription, INTERVAL_MS);
+    }
+
+    checkSubscription();
+
+    return () => {
+      isMounted = false;
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+    };
   }, []);
 
   // Update tab title and inject robots noindex meta tag
   useEffect(() => {
     const prevTitle = document.title;
-    document.title = 'Paiement confirmé — QASH';
+    if (syncState === 'confirmed') {
+      document.title = 'Paiement confirmé — QASH';
+    } else if (syncState === 'timeout') {
+      document.title = 'Paiement en cours de vérification — QASH';
+    } else {
+      document.title = 'Paiement — QASH';
+    }
 
     let metaRobots = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
     let createdMeta = false;
@@ -49,10 +123,9 @@ export const PaymentSuccessPage: React.FC<PaymentSuccessPageProps> = ({ onNaviga
         metaRobots.remove();
       }
     };
-  }, []);
+  }, [syncState]);
 
   const handleDeepLinkClick = () => {
-    // Show Android fallback option after a brief timeout if direct scheme didn't switch context
     setTimeout(() => {
       setShowAndroidFallback(true);
     }, 2000);
@@ -75,26 +148,50 @@ export const PaymentSuccessPage: React.FC<PaymentSuccessPageProps> = ({ onNaviga
             </button>
           </div>
 
-          {/* Sober Success Icon */}
-          <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center mb-5 shadow-2xs">
-            <CheckCircle2 className="w-9 h-9 stroke-[2.2]" />
-          </div>
+          {/* Icon based on syncState */}
+          {syncState === 'confirmed' ? (
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center mb-5 shadow-2xs">
+              <CheckCircle2 className="w-9 h-9 stroke-[2.2]" />
+            </div>
+          ) : syncState === 'timeout' ? (
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center mb-5 shadow-2xs">
+              <Clock className="w-9 h-9 stroke-[2.2]" />
+            </div>
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center mb-5 shadow-2xs">
+              <CheckCircle2 className="w-9 h-9 stroke-[2.2]" />
+            </div>
+          )}
 
           {/* Title */}
           <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight mb-4">
-            Paiement confirmé
+            {syncState === 'confirmed'
+              ? 'Paiement confirmé'
+              : syncState === 'timeout'
+              ? 'Paiement en cours de vérification'
+              : 'Merci !'}
           </h1>
 
           {/* Explanatory Text */}
-          <p className="text-sm sm:text-base text-neutral-600 leading-relaxed mb-6 max-w-sm">
-            Merci ! Nous confirmons la réception de votre paiement. Votre abonnement QASH sera activé dans quelques instants. Retournez dans l&apos;application, elle se mettra à jour toute seule.
-          </p>
-
-          {/* Reference tag (Strictly max 6 chars, grey) */}
-          {shortReference && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100/90 text-neutral-500 font-mono text-xs mb-6 border border-neutral-200/60">
-              <span className="font-semibold text-neutral-400 select-none">Réf.</span>
-              <span className="tracking-wider">{shortReference}</span>
+          {syncState === 'confirmed' ? (
+            <p className="text-sm sm:text-base text-neutral-600 leading-relaxed mb-6 max-w-sm font-medium">
+              Paiement confirmé — abonnement actif jusqu&apos;au{' '}
+              <span className="text-emerald-700 font-semibold">
+                {formatDateFrench(confirmedDate)}
+              </span>.
+            </p>
+          ) : syncState === 'timeout' ? (
+            <p className="text-sm sm:text-base text-neutral-600 leading-relaxed mb-6 max-w-sm">
+              La confirmation prend plus de temps que prévu. Rouvrez l&apos;application QASH, l&apos;abonnement s&apos;actualisera automatiquement.
+            </p>
+          ) : (
+            <div className="space-y-2 mb-6 max-w-sm">
+              <p className="text-sm sm:text-base text-neutral-700 leading-relaxed font-medium">
+                Nous confirmons votre paiement. Votre abonnement QASH sera activé dans quelques instants.
+              </p>
+              <p className="text-xs sm:text-sm text-neutral-500 leading-relaxed">
+                Retournez dans l&apos;application, elle se mettra à jour toute seule.
+              </p>
             </div>
           )}
 

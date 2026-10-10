@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
+import { consumeRedirect } from '../lib/redirect';
 import { PageRoute } from '../types';
 import { motion } from 'motion/react';
 import { QashLogo } from '../components/QashLogo';
@@ -31,17 +32,7 @@ export const AuthCallbackPage: React.FC<AuthCallbackPageProps> = ({ onNavigate }
 
     // If user is authenticated, redirect to destination
     if (!loading && user) {
-      let target: PageRoute = '/dashboard';
-      if (typeof window !== 'undefined') {
-        const saved = (sessionStorage.getItem('qash_redirect_after_login') ||
-          sessionStorage.getItem('redirect_after_login')) as PageRoute | null;
-        if (saved) {
-          sessionStorage.removeItem('qash_redirect_after_login');
-          sessionStorage.removeItem('redirect_after_login');
-          target = saved;
-        }
-      }
-      onNavigate(target);
+      onNavigate(consumeRedirect());
     }
   }, [user, loading, onNavigate]);
 

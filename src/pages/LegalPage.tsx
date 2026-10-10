@@ -33,8 +33,8 @@ export const LegalPage: React.FC<LegalPageProps> = ({ onNavigate }) => {
         </div>
 
         <div className="prose prose-neutral max-w-none space-y-8 text-sm sm:text-base text-neutral-700 leading-relaxed">
-          <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-200 text-xs text-neutral-600 leading-normal">
-            Les éléments d&apos;identification légale entre crochets correspondent aux informations officielles en cours d&apos;immatriculation de la structure éditrice.
+          <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-900 leading-normal">
+            <strong>Avertissement :</strong> Ce document constitue un modèle indicatif de mentions légales à adapter et faire valider par un professionnel du droit. QASH ne prétend pas à une conformité juridique garantie sans révision personnalisée.
           </div>
 
           <section className="space-y-3">

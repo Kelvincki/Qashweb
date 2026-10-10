@@ -33,9 +33,9 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ onNavigate }) => {
         </div>
 
         <div className="prose prose-neutral max-w-none space-y-8 text-sm sm:text-base text-neutral-700 leading-relaxed">
-          {/* Note sur les informations contractuelles */}
+          {/* Note sur les informations contractuelles et modèle juridique */}
           <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-900 leading-normal">
-            <strong>Note d&apos;information :</strong> Ce document définit les engagements de confidentialité pris par QASH à l&apos;égard des utilisateurs et commerçants. Les mentions entre crochets correspondent aux coordonnées légales de l&apos;entité éditrice.
+            <strong>Avertissement :</strong> Ce document constitue un modèle indicatif de politique de confidentialité à faire relire et adapter par un professionnel juridique habilité. QASH ne prétend pas à une conformité juridique garantie sans revue de vos spécificités.
           </div>
 
           <section className="space-y-3">
@@ -64,6 +64,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ onNavigate }) => {
               <li><strong>Données de configuration de la boutique :</strong> nom du commerce, paramètres de devise (FCFA), catalogue produits, niveaux de stock et prix de vente.</li>
               <li><strong>Données d&apos;activité commerciale :</strong> historique des transactions, totaux de caisse enregistrés, sessions de vente et logs de synchronisation.</li>
               <li><strong>Données techniques de connexion :</strong> adresse IP, type de terminal, état de connectivité et horodatages de synchronisation des données locales.</li>
+              <li><strong>Données de règlement des abonnements :</strong> les règlements d&apos;abonnements sont traités de manière sécurisée par des prestataires de paiement mobile agréés (SenePay, Wave, Orange Money). QASH ne conserve aucune coordonnée bancaire confidentielle.</li>
             </ul>
           </section>
 
@@ -112,16 +113,39 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ onNavigate }) => {
               6. Vos droits
             </h2>
             <p>
-              Conformément aux réglementations applicables en matière de protection des données personnelles, vous disposez d&apos;un droit d&apos;accès, de rectification, d&apos;effacement et de portabilité de vos données personnelles, ainsi que d&apos;un droit d&apos;opposition pour motif légitime.
+              Conformément aux réglementations applicables en matière de protection des données personnelles et aux exigences de Google Play, vous disposez d&apos;un droit d&apos;accès, de rectification, d&apos;effacement et de portabilité de vos données personnelles, ainsi que d&apos;un droit d&apos;opposition pour motif légitime.
             </p>
             <p>
-              Pour exercer ces droits, vous pouvez contacter l&apos;équipe QASH à l&apos;adresse suivante : <strong>[EMAIL QASH]</strong>.
+              Pour solliciter l&apos;effacement définitif de votre compte et de vos données, vous pouvez utiliser la page dédiée :{' '}
+              <button
+                onClick={() => onNavigate('/suppression-compte')}
+                className="text-rose-600 font-semibold hover:underline cursor-pointer"
+              >
+                Demande de suppression de compte QASH
+              </button>{' '}
+              ou écrire directement à l&apos;équipe QASH à l&apos;adresse suivante : <strong>[EMAIL QASH]</strong>.
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-xl font-bold text-neutral-900">
-              7. Contact
+              7. Cookies et technologies de stockage
+            </h2>
+            <p>
+              Le site QASH utilise exclusivement des cookies et éléments de stockage local strictement nécessaires à votre authentification et au fonctionnement technique du service. Aucun traceur publicitaire ou d&apos;analyse commerciale n&apos;est utilisé.{' '}
+              Pour en savoir plus, consultez notre page dédiée aux{' '}
+              <button
+                onClick={() => onNavigate('/cookies')}
+                className="text-rose-600 font-semibold hover:underline cursor-pointer"
+              >
+                Cookies et traceurs
+              </button>.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-xl font-bold text-neutral-900">
+              8. Contact
             </h2>
             <p>
               Pour toute question relative à la présente politique de confidentialité ou aux traitements opérés par QASH, veuillez adresser votre demande à [EMAIL QASH] ou par courrier à l&apos;attention de [NOM DE L&apos;ENTREPRISE], [ADRESSE].

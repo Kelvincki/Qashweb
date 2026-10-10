@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
+import { consumeRedirect } from '../lib/redirect';
 import { PageRoute } from '../types';
 import { Eye, EyeOff, Lock, Mail, User, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -25,24 +26,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  // Helper to get and clear redirect destination after register/login
-  const getRedirectTarget = (): PageRoute => {
-    if (typeof window !== 'undefined') {
-      const target = (sessionStorage.getItem('qash_redirect_after_login') ||
-        sessionStorage.getItem('redirect_after_login')) as PageRoute | null;
-      if (target) {
-        sessionStorage.removeItem('qash_redirect_after_login');
-        sessionStorage.removeItem('redirect_after_login');
-        return target;
-      }
-    }
-    return '/dashboard';
-  };
-
   // If already logged in, redirect to destination
   useEffect(() => {
     if (!loading && user) {
-      onNavigate(getRedirectTarget());
+      onNavigate(consumeRedirect());
     }
   }, [user, loading, onNavigate]);
 

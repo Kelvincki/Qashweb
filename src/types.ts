@@ -1,4 +1,20 @@
-export type PageRoute = '/' | '/pricing' | '/privacy' | '/legal' | '/login' | '/register' | '/dashboard' | '/auth/callback' | '/paiement/succes' | '/paiement/annule';
+export type PageRoute = 
+  | '/' 
+  | '/pricing' 
+  | '/privacy' 
+  | '/legal' 
+  | '/cgu'
+  | '/terms'
+  | '/suppression-compte'
+  | '/suppression-donnees'
+  | '/delete-account'
+  | '/login' 
+  | '/register' 
+  | '/dashboard' 
+  | '/auth/callback' 
+  | '/paiement/succes' 
+  | '/paiement/annule'
+  | '/cookies';
 
 export interface PricingBreakdown {
   managersCount: number;

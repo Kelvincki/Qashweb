@@ -11,12 +11,15 @@ import { HomePage } from './pages/HomePage';
 import { PricingPage } from './pages/PricingPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { LegalPage } from './pages/LegalPage';
+import { TermsPage } from './pages/TermsPage';
+import { DeleteAccountPage } from './pages/DeleteAccountPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { PaymentSuccessPage } from './pages/PaymentSuccessPage';
 import { PaymentCanceledPage } from './pages/PaymentCanceledPage';
+import { CookiesPage } from './pages/CookiesPage';
 import { AuthProvider } from './components/AuthContext';
 import { PageRoute } from './types';
 
@@ -25,12 +28,18 @@ const VALID_ROUTES: PageRoute[] = [
   '/pricing',
   '/privacy',
   '/legal',
+  '/cgu',
+  '/terms',
+  '/suppression-compte',
+  '/suppression-donnees',
+  '/delete-account',
   '/login',
   '/register',
   '/dashboard',
   '/auth/callback',
   '/paiement/succes',
   '/paiement/annule',
+  '/cookies',
 ];
 
 export default function App() {
@@ -121,6 +130,12 @@ export default function App() {
           {currentRoute === '/legal' && (
             <LegalPage onNavigate={navigate} />
           )}
+          {(currentRoute === '/cgu' || currentRoute === '/terms') && (
+            <TermsPage onNavigate={navigate} />
+          )}
+          {(currentRoute === '/suppression-compte' || currentRoute === '/suppression-donnees' || currentRoute === '/delete-account') && (
+            <DeleteAccountPage onNavigate={navigate} />
+          )}
           {currentRoute === '/login' && (
             <LoginPage onNavigate={navigate} />
           )}
@@ -138,6 +153,9 @@ export default function App() {
           )}
           {currentRoute === '/paiement/annule' && (
             <PaymentCanceledPage onNavigate={navigate} />
+          )}
+          {currentRoute === '/cookies' && (
+            <CookiesPage onNavigate={navigate} />
           )}
         </main>
 

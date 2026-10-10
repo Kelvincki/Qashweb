@@ -18,6 +18,7 @@ import {
 import { motion } from 'motion/react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
+import { rememberRedirect } from '../lib/redirect';
 import { 
   PageRoute, 
   FaqItem, 
@@ -176,9 +177,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   const handleCheckout = async (planKey: '1m' | '12m') => {
     // Si l'utilisateur n'est pas connecté, mémoriser la destination pour y revenir après login
     if (!user) {
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('qash_redirect_after_login', '/pricing');
-      }
+      rememberRedirect('/pricing');
       if (onNavigate) {
         onNavigate('/login');
       }
