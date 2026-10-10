@@ -34,6 +34,8 @@ function isFutureDate(dateStr?: string | null): boolean {
 export const PaymentSuccessPage: React.FC<PaymentSuccessPageProps> = ({ onNavigate }) => {
   const [syncState, setSyncState] = useState<SyncState>('pending');
   const [confirmedDate, setConfirmedDate] = useState<string | null>(null);
+  const [confirmedSeats, setConfirmedSeats] = useState<number | null>(null);
+  const [isExtensionPayment, setIsExtensionPayment] = useState<boolean>(false);
   const [showAndroidFallback, setShowAndroidFallback] = useState(false);
 
   // Poll get_my_subscription if user is logged in (every 3s, max 60s, cancelable setTimeout)
@@ -61,10 +63,29 @@ export const PaymentSuccessPage: React.FC<PaymentSuccessPageProps> = ({ onNaviga
           const sub = data as MySubscriptionData;
           const targetDate = sub.current_period_end || sub.access_until;
 
-          if (sub.status === 'active' && isFutureDate(targetDate)) {
-            setConfirmedDate(targetDate || null);
-            setSyncState('confirmed');
-            return; // Confirmation achieved, stop polling
+          const currentPaidSeats = typeof sub.paid_seats === 'number' ? sub.paid_seats : null;
+          let extendBeforeRaw: string | null = null;
+          try {
+            extendBeforeRaw = typeof window !== 'undefined' ? sessionStorage.getItem('qash_extend_before') : null;
+          } catch {}
+
+          if (extendBeforeRaw !== null) {
+            setIsExtensionPayment(true);
+            const extendBeforeVal = parseInt(extendBeforeRaw, 10);
+            const prevSeats = isNaN(extendBeforeVal) ? 0 : extendBeforeVal;
+            if (currentPaidSeats !== null && currentPaidSeats > prevSeats) {
+              setConfirmedDate(targetDate || null);
+              setConfirmedSeats(currentPaidSeats);
+              setSyncState('confirmed');
+              try { sessionStorage.removeItem('qash_extend_before'); } catch {}
+              return; // Confirmation achieved, stop polling
+            }
+          } else {
+            if (sub.status === 'active' && isFutureDate(targetDate)) {
+              setConfirmedDate(targetDate || null);
+              setSyncState('confirmed');
+              return; // Confirmation achieved, stop polling
+            }
           }
         }
       } catch (err) {
@@ -175,10 +196,24 @@ export const PaymentSuccessPage: React.FC<PaymentSuccessPageProps> = ({ onNaviga
           {/* Explanatory Text */}
           {syncState === 'confirmed' ? (
             <p className="text-sm sm:text-base text-neutral-600 leading-relaxed mb-6 max-w-sm font-medium">
-              Paiement confirmé — abonnement actif jusqu&apos;au{' '}
-              <span className="text-emerald-700 font-semibold">
-                {formatDateFrench(confirmedDate)}
-              </span>.
+              {isExtensionPayment && confirmedSeats !== null ? (
+                <>
+                  Paiement confirmé — votre boutique dispose désormais de{' '}
+                  <span className="text-emerald-700 font-semibold">
+                    {confirmedSeats} place{confirmedSeats > 1 ? 's' : ''} employé{confirmedSeats > 1 ? 's' : ''}
+                  </span>
+                  {confirmedDate && (
+                    <> (actif jusqu&apos;au <span className="text-emerald-700 font-semibold">{formatDateFrench(confirmedDate)}</span>)</>
+                  )}.
+                </>
+              ) : (
+                <>
+                  Paiement confirmé — abonnement actif jusqu&apos;au{' '}
+                  <span className="text-emerald-700 font-semibold">
+                    {formatDateFrench(confirmedDate)}
+                  </span>.
+                </>
+              )}
             </p>
           ) : syncState === 'timeout' ? (
             <p className="text-sm sm:text-base text-neutral-600 leading-relaxed mb-6 max-w-sm">

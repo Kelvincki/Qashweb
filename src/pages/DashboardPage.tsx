@@ -406,22 +406,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     }
   }, [profileData, fetchStoreAndStats]);
 
-  // 4. Fetch quote from server for extending seats
-  const fetchExtendQuote = useCallback(async (count: number) => {
-    if (!user || count < 1) return;
+  // 4. Devis de l'Edge Function create-checkout pour l'extension de places
+  // Contrat réel : body: { quote: true }. Un seul appel suffit.
+  // extend = { available, months_remaining, unit_price, max_seats, period_end }
+  const fetchExtendQuote = useCallback(async () => {
+    if (!user) return;
     setExtendQuoteLoading(true);
     setExtendQuoteError(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          quote: true,
-          action: 'extend',
-          plan: 'extend',
-          seats: count,
-          add_seats: count,
-          extend_seats: count
-        }
+        body: { quote: true }
       });
 
       if (error) {
@@ -432,28 +427,44 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             errorBody = await (error as any).context.json();
           } catch {}
         }
-        setExtendQuoteError(errorBody?.message || error.message || 'Impossible d\'obtenir le calcul du montant.');
+        const status = (error as any)?.context?.status;
+        const errorCode = errorBody?.error || errorBody?.code || errorBody?.message || '';
+
+        if (status === 409 || errorCode === 'extend_requires_active_period') {
+          setExtendQuoteError("Votre période d'abonnement doit être active pour ajouter des places employés.");
+        } else if (status === 403 || errorCode === 'only_owner_can_pay') {
+          setExtendQuoteError("Seul le gérant de la boutique peut consulter le devis.");
+        } else if (status === 401 || errorCode === 'unauthorized') {
+          setExtendQuoteError('Session expirée, veuillez vous reconnecter.');
+        } else if (status === 503) {
+          setExtendQuoteError('Le service de paiement est indisponible pour le moment.');
+        } else if (status === 502) {
+          setExtendQuoteError('Le service de paiement est momentanément inaccessible, réessayez.');
+        } else {
+          setExtendQuoteError(errorBody?.message || error.message || "Impossible d'obtenir le devis d'extension.");
+        }
         setExtendQuote(null);
       } else {
         setExtendQuote(data);
       }
     } catch (err: any) {
       console.warn('Exception quote extension:', err);
-      setExtendQuoteError(err?.message || 'Erreur réseau lors du calcul.');
+      setExtendQuoteError(err?.message || 'Erreur réseau lors du calcul du devis.');
       setExtendQuote(null);
     } finally {
       setExtendQuoteLoading(false);
     }
   }, [user]);
 
-  // Request quote whenever active tab is subscription and seatsToAdd changes
+  // Récupérer le devis une seule fois lorsque l'onglet abonnement est affiché
   useEffect(() => {
     if (subscription?.status === 'active' && !isEmployee && activeTab === 'subscription') {
-      fetchExtendQuote(seatsToAdd);
+      fetchExtendQuote();
     }
-  }, [subscription?.status, isEmployee, activeTab, seatsToAdd, fetchExtendQuote]);
+  }, [subscription?.status, isEmployee, activeTab, fetchExtendQuote]);
 
-  // Handle Checkout for Extend option
+  // Paiement extension selon le contrat serveur :
+  // body: { extend: { seats: N } } avec N entier de 1 à max_seats
   const handleExtendCheckout = async () => {
     if (!user || isEmployee) return;
     if (subscription?.status !== 'active') return;
@@ -461,14 +472,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     setExtendCheckoutLoading(true);
     setExtendCheckoutError(null);
 
+    // Mémoriser le nombre actuel de paid_seats dans sessionStorage avant redirection
+    try {
+      const currentPaid = subscription?.paid_seats ?? 0;
+      sessionStorage.setItem('qash_extend_before', String(currentPaid));
+    } catch {}
+
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
-          action: 'extend',
-          plan: 'extend',
-          seats: seatsToAdd,
-          add_seats: seatsToAdd,
-          extend_seats: seatsToAdd
+          extend: {
+            seats: seatsToAdd
+          }
         }
       });
 
@@ -483,7 +498,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         }
         const errorCode = errorBody?.error || errorBody?.code || errorBody?.message || '';
 
-        if (status === 403 || errorCode === 'only_owner_can_pay' || String(errorCode).includes('only_owner_can_pay')) {
+        if (status === 409 || errorCode === 'extend_requires_active_period') {
+          setExtendCheckoutError("L'extension nécessite une période d'abonnement active.");
+        } else if (status === 400 || errorCode === 'invalid_seats') {
+          setExtendCheckoutError("Nombre de places invalide pour l'extension.");
+        } else if (status === 403 || errorCode === 'only_owner_can_pay' || String(errorCode).includes('only_owner_can_pay')) {
           setExtendCheckoutError('Seul le gérant de la boutique peut étendre les places employés.');
         } else if (status === 401 || errorCode === 'unauthorized' || String(errorCode).includes('unauthorized')) {
           setExtendCheckoutError('Session expirée, reconnectez-vous.');
@@ -492,7 +511,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         } else if (status === 502 || errorCode === 'provider_error' || String(errorCode).includes('provider_error')) {
           setExtendCheckoutError('Le service de paiement est indisponible, réessayez.');
         } else {
-          setExtendCheckoutError(errorBody?.message || error.message || 'Impossible d\'initialiser le paiement pour l\'extension.');
+          setExtendCheckoutError(errorBody?.message || error.message || "Impossible d'initialiser le paiement pour l'extension.");
         }
         setExtendCheckoutLoading(false);
         return;
@@ -502,7 +521,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
       if (targetUrl) {
         window.location.href = targetUrl;
       } else {
-        setExtendCheckoutError('L\'adresse de paiement n\'a pas pu être générée.');
+        setExtendCheckoutError("L'adresse de paiement n'a pas pu être générée.");
         setExtendCheckoutLoading(false);
       }
     } catch (err: any) {
@@ -511,7 +530,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
       setExtendCheckoutLoading(false);
     }
   };
-
   const handleCopyInviteCode = async () => {
     if (!storeData?.invite_code) return;
     try {
@@ -586,6 +604,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     }
   };
 
+  // Calculs dérivés pour l'extension de places (contrat Edge Function create-checkout)
+  const extendInfo = extendQuote?.extend || null;
+  const extendUnitPrice = typeof extendInfo?.unit_price === 'number' ? extendInfo.unit_price : null;
+  const extendMonthsRemaining = typeof extendInfo?.months_remaining === 'number' ? extendInfo.months_remaining : null;
+  const extendMaxSeats = typeof extendInfo?.max_seats === 'number' ? extendInfo.max_seats : 50;
+  const extendTotalAmount = extendUnitPrice !== null ? extendUnitPrice * seatsToAdd : null;
   if (!user && !authLoading) {
     return null;
   }
@@ -1383,7 +1407,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                       </button>
                     </div>
                   ) : (
-                    /* CAS 3 : Abonnement actif (Formulaire interactif avec prix serveur) */
+                    /* CAS 3 : Abonnement actif (Formulaire interactif avec devis serveur) */
                     <div className="space-y-6">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-neutral-50 border border-neutral-200/80">
                         <div>
@@ -1411,8 +1435,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                           </span>
                           <button
                             type="button"
-                            onClick={() => setSeatsToAdd((prev) => prev + 1)}
-                            disabled={extendCheckoutLoading}
+                            onClick={() => setSeatsToAdd((prev) => Math.min(extendMaxSeats, prev + 1))}
+                            disabled={seatsToAdd >= extendMaxSeats || extendCheckoutLoading}
                             className="w-12 h-12 min-h-[48px] rounded-xl bg-white border border-neutral-300 hover:bg-neutral-100 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center font-bold text-lg text-neutral-700 shadow-2xs cursor-pointer transition-all"
                             aria-label="Augmenter le nombre de places"
                           >
@@ -1432,13 +1456,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               <span>Calcul en cours...</span>
                             </span>
+                          ) : extendTotalAmount !== null ? (
+                            <span className="text-base sm:text-lg font-black text-purple-950">
+                              {extendTotalAmount.toLocaleString('fr-FR')} FCFA
+                            </span>
                           ) : extendQuote?.amount ? (
                             <span className="text-base sm:text-lg font-black text-purple-950">
                               {Number(extendQuote.amount).toLocaleString('fr-FR')} FCFA
-                            </span>
-                          ) : extendQuote?.monthly ? (
-                            <span className="text-base sm:text-lg font-black text-purple-950">
-                              {Number(extendQuote.monthly).toLocaleString('fr-FR')} FCFA
                             </span>
                           ) : (
                             <span className="text-xs text-purple-700 font-medium">
@@ -1446,8 +1470,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-purple-800">
-                          Le montant est calculé par le serveur au prorata de la période restante de votre abonnement actif.
+                        <p className="text-[11px] text-purple-800 leading-relaxed">
+                          Le prix se calcule par mois entamés restants (3 500 FCFA × {extendMonthsRemaining !== null ? String(extendMonthsRemaining) + " mois restants" : "mois entamés"}{extendUnitPrice !== null ? " = " + extendUnitPrice.toLocaleString("fr-FR") + " FCFA par place" : ""}).
                         </p>
                       </div>
 

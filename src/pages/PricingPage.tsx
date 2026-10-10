@@ -189,6 +189,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({
       return;
     }
 
+    // Supprimer tout contexte d'extension avant de lancer un paiement de renouvellement
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.removeItem('qash_extend_before');
+      } catch {}
+    }
+
     setCheckoutLoading(true);
     setCheckoutError(null);
     setCheckoutErrorType(null);
@@ -628,9 +635,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               {onNavigate && (
                 <button
                   onClick={() => {
-                    if (typeof window !== 'undefined') {
-                      sessionStorage.setItem('qash_redirect_after_login', '/pricing');
-                    }
+                    rememberRedirect('/pricing');
                     onNavigate('/login');
                   }}
                   className="w-full sm:w-auto px-6 py-3 rounded-xl bg-qash-red-500 hover:bg-qash-red-600 active:bg-qash-red-700 text-white font-semibold text-sm transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2"
@@ -939,9 +944,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                 {checkoutErrorType === 'unauthorized' && onNavigate && (
                   <button
                     onClick={() => {
-                      if (typeof window !== 'undefined') {
-                        sessionStorage.setItem('qash_redirect_after_login', '/pricing');
-                      }
+                      rememberRedirect('/pricing');
                       onNavigate('/login');
                     }}
                     className="px-3.5 py-1.5 rounded-xl bg-qash-red-500 hover:bg-qash-red-600 text-white text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5"
