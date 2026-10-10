@@ -1091,7 +1091,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     {
       id: 'essai',
       question: "Comment fonctionne l'essai gratuit de 3 jours ?",
-      answer: "À la création de votre boutique, vous bénéficiez d'un essai gratuit de 3 jours pour découvrir QASH. Pendant l'essai, l'ajout de places employés supplémentaires n'est pas disponible : il faut d'abord activer un abonnement payant.",
+      answer: "À la création de votre boutique, vous bénéficiez d'un essai gratuit de 3 jours pour découvrir QASH. Pendant l'essai, vos employés peuvent rejoindre votre boutique sans limite de places. L'ajout de places supplémentaires devient possible après le premier paiement.",
     },
     {
       id: 'payer',
