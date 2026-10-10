@@ -47,6 +47,7 @@ export interface MySubscriptionData {
   current_period_end?: string | null;
   access_until?: string | null;
   employee_count?: number;
+  paid_seats?: number;
   store_name?: string;
   store_code?: string;
   [key: string]: any;
