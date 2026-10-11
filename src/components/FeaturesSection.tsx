@@ -163,7 +163,7 @@ export const FeaturesSection: React.FC = () => {
                 <Package className="w-6 h-6" />
               </div>
               <span className="text-xs font-bold uppercase tracking-wider text-qash-gold-600">
-                02 · Inventaire en temps réel
+                02 · Inventaire synchronisé
               </span>
               <h3 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight">
                 Produits & stock
@@ -182,7 +182,7 @@ export const FeaturesSection: React.FC = () => {
                 </li>
                 <li className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Visibilité instantanée de la disponibilité</span>
+                  <span>Disponibilité synchronisée automatiquement dès que vous êtes connecté à internet</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />

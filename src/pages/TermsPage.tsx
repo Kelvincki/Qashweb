@@ -59,7 +59,7 @@ export const TermsPage: React.FC<TermsPageProps> = ({ onNavigate }) => {
             </p>
             <ul className="list-disc pl-5 space-y-1 text-sm">
               <li>L&apos;enregistrement des encaissements et la gestion de la caisse quotidienne.</li>
-              <li>Le suivi en temps réel des stocks de produits et des alertes de réapprovisionnement.</li>
+              <li>Le suivi des stocks de produits et des alertes de réapprovisionnement, avec une synchronisation automatique dès que vous êtes connecté à internet.</li>
               <li>L&apos;attribution de rôles différenciés entre le gérant de la boutique et ses employés.</li>
               <li>Le fonctionnement <strong>Offline-First</strong> garantissant la continuité des ventes même sans connexion Internet, suivi d&apos;une synchronisation cloud sécurisée lors du retour du réseau.</li>
               <li>Des modules d&apos;assistance automatisée par intelligence artificielle (scan de factures d&apos;approvisionnement et scan optique du panier).</li>

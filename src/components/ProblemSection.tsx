@@ -7,7 +7,7 @@ export const ProblemSection: React.FC = () => {
     {
       icon: PackageX,
       title: 'Suivi du stock compliqué',
-      desc: 'Des ruptures imprévues ou des surplus immobilisés faute de visibilité en temps réel.',
+      desc: 'Des ruptures imprévues ou des surplus immobilisés faute de visibilité sur vos stocks.',
     },
     {
       icon: Layers,

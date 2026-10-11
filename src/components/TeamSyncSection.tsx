@@ -76,7 +76,7 @@ export const TeamSyncSection: React.FC = () => {
         <div className="text-center max-w-3xl mx-auto mb-20">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-qash-red-50 border border-qash-red-100 text-qash-red-600 text-xs font-bold mb-3">
             <RefreshCw className="w-3.5 h-3.5 animate-spin-slow text-qash-red-500" />
-            <span>Synchronisation Temps Réel</span>
+            <span>Synchronisation automatique</span>
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-neutral-900 tracking-tight mb-4 leading-tight">
             Votre équipe synchronisée, <br className="hidden sm:inline" />
@@ -259,7 +259,7 @@ export const TeamSyncSection: React.FC = () => {
               <div className="mt-4 text-xs font-semibold text-neutral-500 max-w-[180px] leading-relaxed">
                 {syncPhase === 0 && "Étape 1 : Saisie de la vente par l'employé"}
                 {syncPhase === 1 && "Étape 2 : Validation de l'encaissement"}
-                {syncPhase === 2 && "Étape 3 : Transfert instantané et sécurisé"}
+                {syncPhase === 2 && "Étape 3 : Transfert sécurisé dès que le téléphone est connecté à internet"}
                 {syncPhase === 3 && "Étape 4 : Mise à jour du tableau de bord Gérant"}
               </div>
             </div>
@@ -348,7 +348,7 @@ export const TeamSyncSection: React.FC = () => {
                             </motion.div>
                           ) : (
                             <div className="h-4 flex items-center justify-center text-[9px] text-neutral-400 italic">
-                              En attente de ventes live...
+                              En attente de ventes...
                             </div>
                           )}
                         </AnimatePresence>
@@ -412,7 +412,7 @@ export const TeamSyncSection: React.FC = () => {
               Le Gérant garde le contrôle
             </h3>
             <p className="text-neutral-600 text-sm leading-relaxed">
-              Consultez les ventes réalisées par votre équipe et suivez l&apos;activité globale de votre boutique depuis votre propre téléphone en temps réel.
+              Consultez les ventes réalisées par votre équipe et suivez l&apos;activité globale de votre boutique depuis votre propre téléphone, avec une synchronisation automatique dès que vous êtes connecté à internet.
             </p>
           </div>
 
@@ -438,7 +438,7 @@ export const TeamSyncSection: React.FC = () => {
               Synchronisation automatique
             </h3>
             <p className="text-neutral-600 text-sm leading-relaxed">
-              Aucune action manuelle requise. Toutes les ventes enregistrées par vos collaborateurs sont instantanément unifiées sur votre tableau de bord.
+              Aucune action manuelle requise. Toutes les ventes enregistrées par vos collaborateurs sont unifiées sur votre tableau de bord grâce à la synchronisation automatique dès que vous êtes connecté à internet. L&apos;application reste utilisable hors ligne.
             </p>
           </div>
 
@@ -518,7 +518,7 @@ export const TeamSyncSection: React.FC = () => {
                     3
                   </div>
                   <span className={offlineState === 'syncing' || offlineState === 'online' ? 'text-white font-bold' : 'text-neutral-500'}>
-                    {offlineState === 'syncing' ? 'Synchronisation live...' : 'Données cloud à jour ✓'}
+                    {offlineState === 'syncing' ? 'Synchronisation en cours...' : 'Données cloud à jour ✓'}
                   </span>
                 </div>
               </div>

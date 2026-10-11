@@ -17,7 +17,7 @@ export const SolutionSection: React.FC = () => {
     {
       icon: Boxes,
       name: 'Stock',
-      detail: 'Quantités en temps réel, alertes de seuil et réapprovisionnement.',
+      detail: 'Quantités synchronisées automatiquement dès que vous êtes connecté à internet, alertes de seuil et réapprovisionnement.',
     },
     {
       icon: Tag,

@@ -975,7 +975,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                     Détail du calcul pour votre boutique
                   </h4>
                   <p className="text-xs text-neutral-500 mt-0.5">
-                    Calculé en temps réel par le serveur pour {quote.seats} utilisateur{quote.seats > 1 ? 's' : ''} (1 gérant + {quote.seats - 1} employé{quote.seats - 1 > 1 ? 's' : ''})
+                    Calculé par le serveur pour{quote.seats} utilisateur{quote.seats > 1 ? 's' : ''} (1 gérant + {quote.seats - 1} employé{quote.seats - 1 > 1 ? 's' : ''})
                   </p>
                 </div>
                 <div className="text-left sm:text-right">
