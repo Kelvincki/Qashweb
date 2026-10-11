@@ -14,7 +14,8 @@ export type PageRoute =
   | '/auth/callback' 
   | '/paiement/succes' 
   | '/paiement/annule'
-  | '/cookies';
+  | '/cookies'
+  | '/join';
 
 export interface PricingBreakdown {
   managersCount: number;

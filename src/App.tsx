@@ -20,6 +20,7 @@ import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { PaymentSuccessPage } from './pages/PaymentSuccessPage';
 import { PaymentCanceledPage } from './pages/PaymentCanceledPage';
 import { CookiesPage } from './pages/CookiesPage';
+import { JoinPage } from './pages/JoinPage';
 import { AuthProvider } from './components/AuthContext';
 import { PageRoute } from './types';
 
@@ -40,6 +41,7 @@ const VALID_ROUTES: PageRoute[] = [
   '/paiement/succes',
   '/paiement/annule',
   '/cookies',
+  '/join',
 ];
 
 export default function App() {
@@ -156,6 +158,9 @@ export default function App() {
           )}
           {currentRoute === '/cookies' && (
             <CookiesPage onNavigate={navigate} />
+          )}
+          {currentRoute === '/join' && (
+            <JoinPage onNavigate={navigate} />
           )}
         </main>
 
