@@ -22,6 +22,7 @@ import { PaymentCanceledPage } from './pages/PaymentCanceledPage';
 import { CookiesPage } from './pages/CookiesPage';
 import { JoinPage } from './pages/JoinPage';
 import { BienvenuePage } from './pages/BienvenuePage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AuthProvider } from './components/AuthContext';
 import { PageRoute } from './types';
 
@@ -44,6 +45,7 @@ const VALID_ROUTES: PageRoute[] = [
   '/cookies',
   '/join',
   '/bienvenue',
+  '/reset-password',
 ];
 
 export default function App() {
@@ -166,6 +168,9 @@ export default function App() {
           )}
           {currentRoute === '/bienvenue' && (
             <BienvenuePage onNavigate={navigate} />
+          )}
+          {currentRoute === '/reset-password' && (
+            <ResetPasswordPage onNavigate={navigate} />
           )}
         </main>
 

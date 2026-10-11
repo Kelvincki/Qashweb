@@ -704,7 +704,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     setResetError(null);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(accountEmail, {
-        redirectTo: window.location.origin + '/auth/callback',
+        redirectTo: window.location.origin + '/reset-password',
       });
       if (error) {
         console.warn('Erreur resetPasswordForEmail:', error);

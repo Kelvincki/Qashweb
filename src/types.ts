@@ -16,7 +16,8 @@ export type PageRoute =
   | '/paiement/annule'
   | '/cookies'
   | '/join'
-  | '/bienvenue';
+  | '/bienvenue'
+  | '/reset-password';
 
 export interface PricingBreakdown {
   managersCount: number;
