@@ -88,6 +88,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/bienvenue`,
           data: {
             first_name: firstName,
             last_name: lastName,
