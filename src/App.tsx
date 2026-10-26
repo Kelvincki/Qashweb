@@ -20,6 +20,8 @@ const TradesPage = page(() => import('./pages/TradesPage'), 'TradesPage');
 const TarifsPage = page(() => import('./pages/TarifsPage'), 'TarifsPage');
 const HowItWorksPage = page(() => import('./pages/HowItWorksPage'), 'HowItWorksPage');
 const DownloadPage = page(() => import('./pages/DownloadPage'), 'DownloadPage');
+const FaqPage = page(() => import('./pages/FaqPage'), 'FaqPage');
+const ContactPage = page(() => import('./pages/ContactPage'), 'ContactPage');
 const PricingPage = page(() => import('./pages/PricingPage'), 'PricingPage');
 const PrivacyPage = page(() => import('./pages/PrivacyPage'), 'PrivacyPage');
 const LegalPage = page(() => import('./pages/LegalPage'), 'LegalPage');
@@ -61,6 +63,10 @@ function renderPage(route: CurrentRoute, navigate: (route: PageRoute, hash?: str
       return <HowItWorksPage />;
     case '/telecharger':
       return <DownloadPage />;
+    case '/faq':
+      return <FaqPage />;
+    case '/contact':
+      return <ContactPage />;
     case '/pricing':
       return <PricingPage onNavigate={navigate} />;
     case '/confidentialite':
