@@ -15,6 +15,11 @@ function page<K extends string>(loader: () => Promise<Record<K, React.ComponentT
   return lazy(() => loader().then((m) => ({ default: m[name] })));
 }
 
+const FeaturesPage = page(() => import('./pages/FeaturesPage'), 'FeaturesPage');
+const TradesPage = page(() => import('./pages/TradesPage'), 'TradesPage');
+const TarifsPage = page(() => import('./pages/TarifsPage'), 'TarifsPage');
+const HowItWorksPage = page(() => import('./pages/HowItWorksPage'), 'HowItWorksPage');
+const DownloadPage = page(() => import('./pages/DownloadPage'), 'DownloadPage');
 const PricingPage = page(() => import('./pages/PricingPage'), 'PricingPage');
 const PrivacyPage = page(() => import('./pages/PrivacyPage'), 'PrivacyPage');
 const LegalPage = page(() => import('./pages/LegalPage'), 'LegalPage');
@@ -46,6 +51,16 @@ function renderPage(route: CurrentRoute, navigate: (route: PageRoute, hash?: str
   switch (route) {
     case '/':
       return <HomePage />;
+    case '/fonctionnalites':
+      return <FeaturesPage />;
+    case '/metiers':
+      return <TradesPage />;
+    case '/tarifs':
+      return <TarifsPage />;
+    case '/comment-ca-marche':
+      return <HowItWorksPage />;
+    case '/telecharger':
+      return <DownloadPage />;
     case '/pricing':
       return <PricingPage onNavigate={navigate} />;
     case '/confidentialite':
