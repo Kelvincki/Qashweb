@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { consumeRedirect } from '../lib/redirect';
 import { PageRoute } from '../types';
-import { motion } from 'motion/react';
-import { QashLogo } from '../components/QashLogo';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { Container, Section } from '../components/ui/Layout';
+import { ButtonLink } from '../components/ui/Button';
+import { Notice, Spinner } from '../components/ui/AuthShell';
 
 interface AuthCallbackPageProps {
   onNavigate: (route: PageRoute) => void;
@@ -36,52 +36,27 @@ export const AuthCallbackPage: React.FC<AuthCallbackPageProps> = ({ onNavigate }
     }
   }, [user, loading, onNavigate]);
 
-  if (errorMessage) {
-    return (
-      <div className="min-h-[85vh] flex items-center justify-center px-4 py-16 bg-qash-surface" id="auth-callback-error">
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="w-full max-w-md bg-white border border-qash-border rounded-2xl p-8 shadow-sm text-center"
-        >
-          <div className="w-12 h-12 rounded-full bg-qash-red-50 text-qash-red-600 flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <h2 className="text-xl font-bold text-qash-ink mb-2">
-            Échec de l'authentification
-          </h2>
-          <p className="text-sm text-neutral-600 mb-6 leading-relaxed">
-            {errorMessage}
-          </p>
-          <button
-            onClick={() => onNavigate('/login')}
-            className="w-full py-3 bg-qash-red-500 text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:bg-qash-red-600 transition-all cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Retour à la connexion
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-[85vh] flex flex-col items-center justify-center px-4 py-16 bg-qash-surface" id="auth-callback-loading">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center text-center max-w-sm"
-      >
-        <QashLogo className="h-10 text-qash-ink mb-6" />
-        <div className="w-8 h-8 border-2 border-qash-ink border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-base font-semibold text-neutral-800">
-          Authentification en cours...
-        </p>
-        <p className="text-sm text-neutral-500 mt-1">
-          Veuillez patienter pendant la validation de votre session QASH.
-        </p>
-      </motion.div>
-    </div>
+    <Section tone="paper" spacing="none" className="pb-24 pt-14 sm:pt-20">
+      <Container>
+        {errorMessage ? (
+          <div className="max-w-[40rem]">
+            <h1 className="text-[clamp(2.25rem,1.5rem+3vw,4rem)] font-black leading-[0.98] tracking-tight">La connexion n&apos;a pas abouti.</h1>
+            <div className="mt-8">
+              <Notice kind="error">{errorMessage}</Notice>
+            </div>
+            <ButtonLink to="/login" size="lg" className="mt-8">
+              Retour à la connexion
+            </ButtonLink>
+          </div>
+        ) : (
+          <div className="flex max-w-[40rem] flex-col gap-6" aria-live="polite">
+            <Spinner className="h-10 w-10" />
+            <h1 className="text-[clamp(2.25rem,1.5rem+3vw,4rem)] font-black leading-[0.98] tracking-tight">Connexion en cours…</h1>
+            <p className="text-xl">Nous vérifions votre session QASH, un instant.</p>
+          </div>
+        )}
+      </Container>
+    </Section>
   );
 };

@@ -30,6 +30,7 @@ const CookiesPage = page(() => import('./pages/CookiesPage'), 'CookiesPage');
 const DeleteAccountPage = page(() => import('./pages/DeleteAccountPage'), 'DeleteAccountPage');
 const LoginPage = page(() => import('./pages/LoginPage'), 'LoginPage');
 const RegisterPage = page(() => import('./pages/RegisterPage'), 'RegisterPage');
+const ForgotPasswordPage = page(() => import('./pages/ForgotPasswordPage'), 'ForgotPasswordPage');
 const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage');
 const AuthCallbackPage = page(() => import('./pages/AuthCallbackPage'), 'AuthCallbackPage');
 const PaymentSuccessPage = page(() => import('./pages/PaymentSuccessPage'), 'PaymentSuccessPage');
@@ -89,6 +90,8 @@ function renderPage(route: CurrentRoute, navigate: (route: PageRoute, hash?: str
       return <LoginPage onNavigate={navigate} />;
     case '/register':
       return <RegisterPage onNavigate={navigate} />;
+    case '/mot-de-passe-oublie':
+      return <ForgotPasswordPage onNavigate={navigate} />;
     case '/dashboard':
       return <DashboardPage onNavigate={navigate} />;
     case '/auth/callback':

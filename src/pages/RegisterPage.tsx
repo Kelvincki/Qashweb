@@ -3,10 +3,11 @@ import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
 import { consumeRedirect } from '../lib/redirect';
 import { PageRoute } from '../types';
-import { Eye, EyeOff, Lock, Mail, User, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { motion } from 'motion/react';
-import { QashLogo } from '../components/QashLogo';
 import { GoogleIcon } from '../components/GoogleIcon';
+import { AuthShell, Field, Notice, PasswordField, Spinner } from '../components/ui/AuthShell';
+import { Button, buttonClasses } from '../components/ui/Button';
+import { AppLink } from '../lib/navigation';
+import { PRICING } from '../config/site';
 
 interface RegisterPageProps {
   onNavigate: (route: PageRoute) => void;
@@ -129,226 +130,104 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
 
   if (loading) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center bg-qash-surface" id="register-loading">
-        <div className="w-8 h-8 border-2 border-qash-ink border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex min-h-[60vh] items-center justify-center" aria-busy="true">
+        <Spinner className="h-8 w-8" />
       </div>
     );
   }
 
+  const busy = isSubmitting || isGoogleLoading;
+
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-16 bg-qash-surface" id="register-page">
-      <motion.div 
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: 'easeOut' }}
-        className="w-full max-w-md bg-white border border-qash-border rounded-2xl p-8 shadow-sm"
-      >
-        <div className="flex flex-col items-center mb-8">
-          <div className="mb-4">
-            <QashLogo className="h-10 text-qash-ink" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-qash-ink text-center">
-            Créer un compte QASH
-          </h1>
-          <p className="text-neutral-500 text-sm mt-2 text-center">
-            Rejoignez QASH et simplifiez la gestion de votre boutique
-          </p>
-        </div>
+    <AuthShell
+      title="Créer un compte."
+      intro={<>Ensuite, ouvrez l&apos;application pour créer votre boutique : les {PRICING.trialDays} premiers jours sont gratuits.</>}
+    >
+      <div className="space-y-6">
+        {errorMsg && <Notice kind="error">{errorMsg}</Notice>}
+        {successMsg && <Notice kind="success">{successMsg}</Notice>}
 
-        {errorMsg && (
-          <div className="mb-6 p-4 bg-qash-red-50 border border-qash-red-100 rounded-xl flex items-start gap-3 text-qash-red-600 text-sm">
-            <AlertCircle className="w-5 h-5 shrink-0 text-qash-red-500 mt-0.5" />
-            <div>{errorMsg}</div>
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="mb-6 p-4 bg-qash-green-50 border border-qash-green-600/20 rounded-xl flex items-start gap-3 text-qash-green-600 text-sm">
-            <CheckCircle2 className="w-5 h-5 shrink-0 text-qash-green-500 mt-0.5" />
-            <div>{successMsg}</div>
-          </div>
-        )}
-
-        {/* Google OAuth Button */}
-        <button
-          type="button"
-          id="google-register-btn"
-          onClick={handleGoogleSignIn}
-          disabled={isSubmitting || isGoogleLoading}
-          className="w-full py-3 px-4 bg-white border border-qash-border hover:bg-qash-surface hover:border-neutral-300 text-qash-ink font-medium text-sm rounded-xl flex items-center justify-center gap-3 transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none shadow-xs active:scale-[0.99] mb-6"
-        >
+        <button type="button" id="google-register-btn" onClick={handleGoogleSignIn} disabled={busy} className={buttonClasses('quiet', 'lg', 'w-full')}>
           {isGoogleLoading ? (
-            <div className="w-5 h-5 border-2 border-qash-ink border-t-transparent rounded-full animate-spin"></div>
+            <Spinner />
           ) : (
             <>
-              <GoogleIcon className="w-5 h-5 shrink-0" />
-              <span>Continuer avec Google</span>
+              <GoogleIcon className="h-5 w-5 shrink-0" />
+              Continuer avec Google
             </>
           )}
         </button>
 
-        {/* Divider */}
-        <div className="relative flex items-center justify-center mb-6">
-          <div className="border-t border-qash-border w-full"></div>
-          <span className="bg-white px-3 text-xs text-neutral-400 font-semibold uppercase tracking-wider absolute">
-            ou
-          </span>
-        </div>
+        <p className="text-center text-base font-semibold text-muted">ou avec votre e-mail</p>
 
-        <form onSubmit={handleRegister} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="first-name-input" className="block text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1.5">
-                Prénom
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-neutral-400">
-                  <User className="w-3.5 h-3.5" />
-                </span>
-                <input
-                  id="first-name-input"
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Jean"
-                  required
-                  disabled={isSubmitting || isGoogleLoading}
-                  className="w-full pl-9 pr-3 py-2.5 bg-qash-surface border border-qash-border rounded-xl text-qash-ink placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-qash-red-500/10 focus:border-qash-red-500 transition-all text-sm disabled:opacity-60"
-                />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="last-name-input" className="block text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1.5">
-                Nom
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-neutral-400">
-                  <User className="w-3.5 h-3.5" />
-                </span>
-                <input
-                  id="last-name-input"
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Dupont"
-                  required
-                  disabled={isSubmitting || isGoogleLoading}
-                  className="w-full pl-9 pr-3 py-2.5 bg-qash-surface border border-qash-border rounded-xl text-qash-ink placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-qash-red-500/10 focus:border-qash-red-500 transition-all text-sm disabled:opacity-60"
-                />
-              </div>
-            </div>
+        <form onSubmit={handleRegister} className="space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field
+              id="first-name-input"
+              label="Prénom"
+              autoComplete="given-name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              disabled={busy}
+            />
+            <Field
+              id="last-name-input"
+              label="Nom"
+              autoComplete="family-name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              disabled={busy}
+            />
           </div>
-
-          <div>
-            <label htmlFor="email-register-input" className="block text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1.5">
-              Adresse e-mail
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-neutral-400">
-                <Mail className="w-4 h-4" />
-              </span>
-              <input
-                id="email-register-input"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="votre@email.com"
-                required
-                disabled={isSubmitting || isGoogleLoading}
-                className="w-full pl-10 pr-4 py-2.5 bg-qash-surface border border-qash-border rounded-xl text-qash-ink placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-qash-red-500/10 focus:border-qash-red-500 transition-all text-sm disabled:opacity-60"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="password-register-input" className="block text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1.5">
-              Mot de passe
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-neutral-400">
-                <Lock className="w-4 h-4" />
-              </span>
-              <input
-                id="password-register-input"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimum 6 caractères"
-                required
-                disabled={isSubmitting || isGoogleLoading}
-                className="w-full pl-10 pr-10 py-2.5 bg-qash-surface border border-qash-border rounded-xl text-qash-ink placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-qash-red-500/10 focus:border-qash-red-500 transition-all text-sm disabled:opacity-60"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={isSubmitting || isGoogleLoading}
-                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-400 hover:text-neutral-600 transition-colors"
-                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="confirm-password-input" className="block text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1.5">
-              Confirmer le mot de passe
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-neutral-400">
-                <Lock className="w-4 h-4" />
-              </span>
-              <input
-                id="confirm-password-input"
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                disabled={isSubmitting || isGoogleLoading}
-                className="w-full pl-10 pr-10 py-2.5 bg-qash-surface border border-qash-border rounded-xl text-qash-ink placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-qash-red-500/10 focus:border-qash-red-500 transition-all text-sm disabled:opacity-60"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                disabled={isSubmitting || isGoogleLoading}
-                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-400 hover:text-neutral-600 transition-colors"
-                aria-label={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-              >
-                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          <button
-            id="submit-register-btn"
-            type="submit"
-            disabled={isSubmitting || isGoogleLoading}
-            className="w-full py-3 bg-qash-red-500 text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:bg-qash-red-600 focus:outline-none focus:ring-2 focus:ring-qash-red-500/20 active:scale-[0.99] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer mt-3"
-          >
-            {isSubmitting ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <>
-                Créer mon compte
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
+          <Field
+            id="email-register-input"
+            label="Adresse e-mail"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="votre@email.com"
+            required
+            disabled={busy}
+          />
+          <PasswordField
+            id="password-register-input"
+            label="Mot de passe"
+            autoComplete="new-password"
+            hint="6 caractères minimum."
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={busy}
+            visible={showPassword}
+            onToggle={() => setShowPassword(!showPassword)}
+          />
+          <PasswordField
+            id="confirm-password-input"
+            label="Confirmer le mot de passe"
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            disabled={busy}
+            visible={showConfirmPassword}
+            onToggle={() => setShowConfirmPassword(!showConfirmPassword)}
+          />
+          <Button id="submit-register-btn" type="submit" size="lg" disabled={busy} className="w-full">
+            {isSubmitting ? <Spinner /> : 'Créer mon compte'}
+          </Button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-qash-border text-center">
-          <p className="text-sm text-neutral-500">
-            Vous avez déjà un compte ?{' '}
-            <button
-              onClick={() => onNavigate('/login')}
-              className="font-semibold text-qash-ink hover:underline focus:outline-none cursor-pointer"
-            >
-              Se connecter
-            </button>
-          </p>
-        </div>
-      </motion.div>
-    </div>
+        <p className="pt-4 text-lg">
+          Vous avez déjà un compte&nbsp;?{' '}
+          <AppLink to="/login" className="font-bold underline decoration-2 underline-offset-4 hover:text-brand-red">
+            Se connecter
+          </AppLink>
+        </p>
+      </div>
+    </AuthShell>
   );
 };
