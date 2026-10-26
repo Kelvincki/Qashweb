@@ -223,7 +223,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
 
         <p className="pt-4 text-lg">
           Vous avez déjà un compte&nbsp;?{' '}
-          <AppLink to="/login" className="font-bold underline decoration-2 underline-offset-4 hover:text-brand-red">
+          <AppLink to="/login" className="inline-flex min-h-11 items-center font-bold underline decoration-2 underline-offset-4 hover:text-brand-red">
             Se connecter
           </AppLink>
         </p>

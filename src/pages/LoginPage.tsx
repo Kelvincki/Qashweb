@@ -159,7 +159,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
 
         <p className="pt-4 text-lg">
           Nouveau sur QASH&nbsp;?{' '}
-          <AppLink to="/register" className="font-bold underline decoration-2 underline-offset-4 hover:text-brand-red">
+          <AppLink to="/register" className="inline-flex min-h-11 items-center font-bold underline decoration-2 underline-offset-4 hover:text-brand-red">
             Créer un compte
           </AppLink>
         </p>

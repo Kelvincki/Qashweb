@@ -74,9 +74,19 @@ Les écrans de téléphone du site sont **dessinés** (l'interface de l'app est 
 
 `PhoneMockup` affiche alors l'image (chargement différé) partout sur le site, sans autre modification.
 
+## Écarts assumés par rapport au skill
+
+Les règles du brief passent avant les conseils du skill. Écarts volontaires :
+
+- **Scripts du skill non exécutés** (`draw.mjs`, `inspect.mjs`, `assets.mjs`) : code tiers signalé « Med Risk » à l'installation. La direction a été choisie en lisant sa bibliothèque (`library/directions.json`) ; la boucle « regarder à 3 largeurs » a été faite avec des captures Edge headless à 390, 768 et 1280 px.
+- **Pas de photos trouvées** : le skill demande au moins quatre vraies images par page ; ici, pas de photo de banque d'images et pas de capture de l'app (interface en refonte). Les images sont les maquettes de téléphone dessinées et les champs de couleur.
+- **Mouvement minimal** : le skill exige une couche de mouvement fournie ; le brief demande des animations discrètes et un site léger. On garde une apparition au défilement et des retours au clic, sans bibliothèque.
+- **Étapes numérotées** sur « Comment ça marche » et « Télécharger » : le skill déconseille la numérotation ; pour un mode d'emploi lu sur téléphone, les numéros aident. Ce sont de vraies listes `<ol>`.
+- **Pastilles de navigation** (liens d'ancre en haut des pages longues) : utiles au pouce sur mobile.
+
 ## Mouvement
 
-Discret : apparition des sections (opacité + 18 px, 0,5 s, une fois), retour au clic sur les boutons, survols. Tout est coupé si `prefers-reduced-motion: reduce`. Aucune bibliothèque d'animation sur les pages publiques.
+Discret : apparition des sections (opacité + 18 px, 0,5 s, une fois), retour au clic sur les boutons, survols. Tout est coupé si `prefers-reduced-motion: reduce`. Aucune bibliothèque d’animation (la dépendance `motion` a été retirée).
 
 ## Performance
 

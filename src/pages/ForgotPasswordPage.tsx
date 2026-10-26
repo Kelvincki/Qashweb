@@ -83,7 +83,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = () => {
         )}
 
         <p className="pt-4 text-lg">
-          <AppLink to="/login" className="font-bold underline decoration-2 underline-offset-4 hover:text-brand-red">
+          <AppLink to="/login" className="inline-flex min-h-11 items-center font-bold underline decoration-2 underline-offset-4 hover:text-brand-red">
             Retour à la connexion
           </AppLink>
         </p>
