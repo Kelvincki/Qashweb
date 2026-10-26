@@ -1,127 +1,91 @@
 import React from 'react';
-import { QashLogo } from './QashLogo';
+import { AppLink } from '../lib/navigation';
 import { PageRoute } from '../types';
+import { Container } from './ui/Layout';
+import { Wordmark } from './ui/Logo';
+import { CONTACT_EMAIL, mailtoLink, whatsappLink } from '../config/site';
 
-interface FooterProps {
-  onNavigate: (route: PageRoute, hash?: string) => void;
-}
+const COLUMNS: Array<{ title: string; links: Array<{ to: PageRoute; label: string }> }> = [
+  {
+    title: 'Produit',
+    links: [
+      { to: '/fonctionnalites', label: 'Fonctionnalités' },
+      { to: '/metiers', label: 'Métiers' },
+      { to: '/comment-ca-marche', label: 'Comment ça marche' },
+      { to: '/tarifs', label: 'Tarifs' },
+      { to: '/telecharger', label: "Télécharger l'app" },
+    ],
+  },
+  {
+    title: 'Aide',
+    links: [
+      { to: '/faq', label: 'Questions fréquentes' },
+      { to: '/contact', label: 'Contact' },
+      { to: '/dashboard', label: 'Mon espace' },
+      { to: '/suppression-compte', label: 'Supprimer mon compte' },
+    ],
+  },
+  {
+    title: 'Légal',
+    links: [
+      { to: '/mentions-legales', label: 'Mentions légales' },
+      { to: '/confidentialite', label: 'Confidentialité' },
+      { to: '/conditions', label: "Conditions d'utilisation" },
+      { to: '/cookies', label: 'Cookies' },
+    ],
+  },
+];
 
-export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+export const Footer: React.FC = () => {
+  const mail = mailtoLink();
+  const whatsapp = whatsappLink();
+
   return (
-    <footer className="bg-white border-t border-neutral-200/80 pt-12 pb-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-neutral-100">
-          {/* Brand Col */}
-          <div className="md:col-span-2 space-y-4">
-            <QashLogo size="md" />
-            <p className="text-neutral-500 text-sm max-w-sm leading-relaxed">
-              QASH — La gestion de boutique simplifiée. Solution moderne pour gérer votre caisse, votre stock, vos ventes et votre équipe.
-            </p>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 text-neutral-600 text-xs font-medium">
-              <span className="w-2 h-2 rounded-full bg-qash-green-500"></span>
-              <span>Plateforme certifiée pour les commerçants</span>
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <div>
-            <h4 className="text-xs font-bold text-neutral-900 uppercase tracking-wider mb-4">
-              Navigation
-            </h4>
-            <ul className="space-y-2.5 text-sm text-neutral-600">
-              <li>
-                <button
-                  onClick={() => onNavigate('/')}
-                  className="hover:text-qash-red-500 transition-colors cursor-pointer"
-                >
-                  Accueil
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('/', '#features')}
-                  className="hover:text-qash-red-500 transition-colors cursor-pointer"
-                >
-                  Fonctionnalités
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('/', '#how-it-works')}
-                  className="hover:text-qash-red-500 transition-colors cursor-pointer"
-                >
-                  Comment ça marche
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('/pricing')}
-                  className="hover:text-qash-red-500 transition-colors cursor-pointer"
-                >
-                  Tarifs (Pricing)
-                </button>
-              </li>
+    <footer className="bg-field pb-10 pt-20 text-ink sm:pt-28">
+      <Container>
+        <div className="grid gap-12 lg:grid-cols-12">
+          <div className="lg:col-span-5">
+            <p className="max-w-[22rem] text-title font-black">La caisse de votre boutique, même sans internet.</p>
+            <ul className="mt-6 space-y-2 text-lg">
+              {whatsapp && (
+                <li>
+                  <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="font-semibold underline decoration-2 underline-offset-4 hover:text-brand-red">
+                    WhatsApp
+                  </a>
+                </li>
+              )}
+              {mail && (
+                <li>
+                  <a href={mail} className="font-semibold underline decoration-2 underline-offset-4 hover:text-brand-red">
+                    {CONTACT_EMAIL}
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
-
-          {/* Legal Links */}
-          <div>
-            <h4 className="text-xs font-bold text-neutral-900 uppercase tracking-wider mb-4">
-              Informations légales
-            </h4>
-            <ul className="space-y-2.5 text-sm text-neutral-600">
-              <li>
-                <button
-                  onClick={() => onNavigate('/privacy')}
-                  className="hover:text-qash-red-500 transition-colors cursor-pointer text-left"
-                >
-                  Politique de confidentialité
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('/cgu')}
-                  className="hover:text-qash-red-500 transition-colors cursor-pointer text-left"
-                >
-                  Conditions Générales d&apos;Utilisation (CGU)
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('/legal')}
-                  className="hover:text-qash-red-500 transition-colors cursor-pointer text-left"
-                >
-                  Mentions légales
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('/suppression-compte')}
-                  className="hover:text-qash-red-500 transition-colors cursor-pointer text-left"
-                >
-                  Suppression du compte
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('/cookies')}
-                  className="hover:text-qash-red-500 transition-colors cursor-pointer text-left"
-                >
-                  Cookies et traceurs
-                </button>
-              </li>
-            </ul>
-          </div>
+          <nav aria-label="Pied de page" className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:col-span-7">
+            {COLUMNS.map((col) => (
+              <div key={col.title}>
+                <h2 className="text-base font-bold text-muted">{col.title}</h2>
+                <ul className="mt-3">
+                  {col.links.map((link) => (
+                    <li key={link.to}>
+                      <AppLink to={link.to} className="flex min-h-11 items-center text-base font-semibold hover:text-brand-red">
+                        {link.label}
+                      </AppLink>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
         </div>
 
-        {/* Bottom bar */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
-          <p>© 2026 QASH. Tous droits réservés.</p>
-          <p className="text-neutral-400">
-            Conçu pour les commerçants modernes.
-          </p>
+        <div className="mt-20 sm:mt-28">
+          <Wordmark height={240} alt="QASH" className="w-full max-w-[598px]" />
         </div>
-      </div>
+        <p className="mt-8 text-base text-muted">© {new Date().getFullYear()} QASH. Tous droits réservés.</p>
+      </Container>
     </footer>
   );
 };

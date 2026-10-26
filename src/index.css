@@ -1,37 +1,127 @@
 @import "tailwindcss";
+@import "@fontsource-variable/archivo/wght.css";
 
+/*
+ * Jetons de design QASH (voir docs/DESIGN.md).
+ * Une famille (Archivo, auto-hébergée), un fond, une encre, un accent rouge.
+ * Le jaune et l'encre servent de champs de couleur pleins.
+ */
 @theme {
-  /* Rouge QASH — CTA principal, actions actives, alertes/suppressions */
-  --color-qash-red-50: #FEF2F2;
-  --color-qash-red-100: #FEE2E2;
-  --color-qash-red-500: #FA1316;
-  --color-qash-red-600: #E00F12;
-  --color-qash-red-700: #C20D10;
+  --font-sans: 'Archivo Variable', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
 
-  /* Jaune/Or QASH — accent, réapprovisionnement, attention */
-  --color-qash-gold-400: #FDD10B;
-  --color-qash-gold-500: #FEA202;
-  --color-qash-gold-600: #E88F00;
+  /* Marque */
+  --color-brand-red: #E8161F;
+  --color-brand-red-dark: #C1121A;
+  --color-brand-yellow: #FFB000;
+  --color-ink: #18181B;
+  --color-paper: #FFFFFF;
+  --color-field: #F4F4F5;
+  --color-field-strong: #E4E4E7;
+  --color-muted: #52525B;
+  --color-success: #15803D;
+  --color-success-soft: #ECFDF3;
+  --color-warning-soft: #FFF6DB;
+  --color-danger-soft: #FDECEC;
 
-  /* Vert — succès, stock disponible, tendances positives */
-  --color-qash-green-50: #F0FDF4;
+  /* Anciens jetons conservés pour les pages non refaites : alignés sur la nouvelle marque */
+  --color-qash-red-50: #FDECEC;
+  --color-qash-red-100: #FBD5D6;
+  --color-qash-red-500: #E8161F;
+  --color-qash-red-600: #C1121A;
+  --color-qash-red-700: #A10F16;
+  --color-qash-gold-400: #FFC233;
+  --color-qash-gold-500: #FFB000;
+  --color-qash-gold-600: #8F5F00;
+  --color-qash-green-50: #ECFDF3;
   --color-qash-green-500: #16A34A;
   --color-qash-green-600: #15803D;
+  --color-qash-ink: #18181B;
+  --color-qash-surface: #F4F4F5;
+  --color-qash-border: #E4E4E7;
 
-  /* Neutres */
-  --color-qash-ink: #171717;
-  --color-qash-surface: #FAFAFA;
-  --color-qash-border: #E5E5E5;
-}
+  /* Échelle typographique (3 tailles font le travail visible) */
+  --text-display: clamp(2.375rem, 0.55rem + 7.6vw, 6.75rem);
+  --text-display--line-height: 0.95;
+  --text-display--letter-spacing: -0.035em;
+  --text-headline: clamp(2rem, 1.1rem + 3.6vw, 4.25rem);
+  --text-headline--line-height: 1;
+  --text-headline--letter-spacing: -0.03em;
+  --text-title: clamp(1.375rem, 1.1rem + 0.9vw, 1.875rem);
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.02em;
+  --text-body: 1.125rem;
+  --text-body--line-height: 1.55;
 
-@utility bg-qash-gradient {
-  background: linear-gradient(135deg, #FA1316 0%, #FEA202 100%);
+  --animate-rise: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 @layer base {
   html {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    scroll-behavior: smooth;
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+  }
+
+  ::selection {
+    background-color: var(--color-brand-yellow);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+
+  /* Pas de défilement fluide forcé : respecte les préférences du système */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 }
 
+/* Mouvement discret, coupé si l'utilisateur le demande */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Apparition au défilement (le contenu reste visible sans script) */
+.reveal-pending {
+  opacity: 0;
+  transform: translateY(18px);
+}
+.reveal-done {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.5s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Le logo (fourni sur fond blanc) se fond dans les fonds clairs */
+.logo-blend {
+  mix-blend-mode: multiply;
+}

@@ -1,49 +1,17 @@
 import React from 'react';
+import { Wordmark } from './ui/Logo';
 
 interface QashLogoProps {
   className?: string;
   showText?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | number;
   variant?: 'dark' | 'light';
 }
 
-export const QashLogo: React.FC<QashLogoProps> = ({
-  className = '',
-  showText = true,
-  size = 'md',
-  variant = 'dark',
-}) => {
-  const iconDimensions = {
-    sm: 'w-7 h-7',
-    md: 'w-8 h-8',
-    lg: 'w-10 h-10',
-  }[size];
+const HEIGHTS = { sm: 26, md: 30, lg: 38 } as const;
 
-  const textSize = {
-    sm: 'text-xl',
-    md: 'text-2xl',
-    lg: 'text-3xl',
-  }[size];
-
-  const textColor = variant === 'light' ? 'text-white' : 'text-neutral-900';
-
-  return (
-    <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
-      {/* QASH Emblem */}
-      <img
-        src="/logo_qash.png"
-        alt="QASH Logo"
-        className={`${iconDimensions} rounded-xl object-contain shrink-0 transition-transform duration-200 hover:scale-110`}
-        referrerPolicy="no-referrer"
-      />
-
-      {showText && (
-        <span
-          className={`font-extrabold tracking-tight ${textSize} ${textColor} leading-none`}
-        >
-          QASH
-        </span>
-      )}
-    </div>
-  );
+/** Ancien composant de logo : affiche désormais le wordmark officiel (public/brand). */
+export const QashLogo: React.FC<QashLogoProps> = ({ className = '', size = 'md' }) => {
+  const height = typeof size === 'number' ? Math.round(size * 0.7) : HEIGHTS[size];
+  return <Wordmark height={height} className={className} />;
 };

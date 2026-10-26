@@ -29,13 +29,12 @@ import {
 
 interface PricingPageProps {
   onNavigate?: (route: PageRoute) => void;
-  onOpenStartModal: () => void;
 }
 
-export const PricingPage: React.FC<PricingPageProps> = ({ 
-  onNavigate, 
-  onOpenStartModal 
+export const PricingPage: React.FC<PricingPageProps> = ({
+  onNavigate,
 }) => {
+  const onOpenStartModal = () => onNavigate?.('/register');
   const { user, loading: authLoading, signOut } = useAuth();
 
   // Subscription state

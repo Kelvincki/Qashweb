@@ -17,7 +17,18 @@ export type PageRoute =
   | '/cookies'
   | '/join'
   | '/bienvenue'
-  | '/reset-password';
+  | '/reset-password'
+  | '/fonctionnalites'
+  | '/metiers'
+  | '/tarifs'
+  | '/comment-ca-marche'
+  | '/telecharger'
+  | '/faq'
+  | '/contact'
+  | '/mentions-legales'
+  | '/confidentialite'
+  | '/conditions'
+  | '/mot-de-passe-oublie';
 
 export interface PricingBreakdown {
   managersCount: number;

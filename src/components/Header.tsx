@@ -1,213 +1,147 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, X, ArrowRight, User } from 'lucide-react';
-import { QashLogo } from './QashLogo';
-import { PageRoute } from '../types';
+import React, { useEffect, useRef, useState } from 'react';
+import { Menu, X } from 'lucide-react';
 import { useAuth } from './AuthContext';
+import { AppLink, useNavigation } from '../lib/navigation';
+import { PageRoute } from '../types';
+import { Container } from './ui/Layout';
+import { Wordmark } from './ui/Logo';
+import { buttonClasses } from './ui/Button';
 
-interface HeaderProps {
-  currentRoute: PageRoute;
-  onNavigate: (route: PageRoute, hash?: string) => void;
-  onOpenStartModal: () => void;
-}
+const NAV_LINKS: Array<{ to: PageRoute; label: string }> = [
+  { to: '/fonctionnalites', label: 'Fonctionnalités' },
+  { to: '/metiers', label: 'Métiers' },
+  { to: '/tarifs', label: 'Tarifs' },
+  { to: '/faq', label: 'FAQ' },
+  { to: '/contact', label: 'Contact' },
+];
 
-export const Header: React.FC<HeaderProps> = ({
-  currentRoute,
-  onNavigate,
-  onOpenStartModal,
-}) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+export const Header: React.FC = () => {
+  const { currentRoute } = useNavigation();
   const { user, loading } = useAuth();
+  const [open, setOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const firstLinkRef = useRef<HTMLAnchorElement>(null);
 
+  // Fermer le menu à chaque changement de page
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    setOpen(false);
+  }, [currentRoute]);
 
-  const handleLinkClick = (route: PageRoute, hash?: string) => {
-    setMobileMenuOpen(false);
-    onNavigate(route, hash);
-  };
+  // Menu mobile : Échap pour fermer, défilement de la page bloqué, focus sur le premier lien
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    firstLinkRef.current?.focus();
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open]);
+
+  const isLoggedIn = !loading && !!user;
+  const accountLink: { to: PageRoute; label: string } = isLoggedIn
+    ? { to: '/dashboard', label: 'Mon espace' }
+    : { to: '/login', label: 'Se connecter' };
 
   return (
-    <header
-      className={`sticky top-0 z-40 w-full transition-all duration-200 ${
-        scrolled
-          ? 'bg-white/95 backdrop-blur-md shadow-xs border-b border-qash-border py-3'
-          : 'bg-white border-b border-neutral-100 py-4'
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-        {/* Brand Logo */}
-        <button
-          onClick={() => handleLinkClick('/')}
-          className="cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-qash-red-500 rounded-lg"
-          aria-label="Accueil QASH"
-        >
-          <QashLogo size="md" />
-        </button>
+    <header className="sticky top-0 z-40 bg-white">
+      <a
+        href="#contenu"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
+      >
+        Aller au contenu
+      </a>
+      <Container className="flex h-[72px] items-center justify-between gap-6">
+        <AppLink to="/" aria-label="QASH, accueil" className="flex min-h-11 items-center rounded-lg">
+          <Wordmark height={30} alt="" />
+        </AppLink>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-600">
-          <button
-            onClick={() => handleLinkClick('/')}
-            className={`transition-colors hover:text-neutral-900 cursor-pointer ${
-              currentRoute === '/' ? 'text-qash-red-600 font-semibold' : ''
-            }`}
-          >
-            Accueil
-          </button>
-          <button
-            onClick={() => handleLinkClick('/', '#features')}
-            className="transition-colors hover:text-neutral-900 cursor-pointer"
-          >
-            Fonctionnalités
-          </button>
-          <button
-            onClick={() => handleLinkClick('/', '#how-it-works')}
-            className="transition-colors hover:text-neutral-900 cursor-pointer"
-          >
-            Comment ça marche
-          </button>
-          <button
-            onClick={() => handleLinkClick('/pricing')}
-            className={`transition-colors hover:text-neutral-900 cursor-pointer ${
-              currentRoute === '/pricing' ? 'text-qash-red-600 font-semibold' : ''
-            }`}
-          >
-            Pricing
-          </button>
+        <nav aria-label="Navigation principale" className="hidden lg:block">
+          <ul className="flex items-center gap-1">
+            {NAV_LINKS.map((link) => {
+              const active = currentRoute === link.to;
+              return (
+                <li key={link.to}>
+                  <AppLink
+                    to={link.to}
+                    aria-current={active ? 'page' : undefined}
+                    className={`flex min-h-11 items-center rounded-full px-4 text-base font-semibold transition-colors hover:bg-field ${
+                      active ? 'text-brand-red' : 'text-ink'
+                    }`}
+                  >
+                    {link.label}
+                  </AppLink>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
 
-        {/* Action Button (Desktop) */}
-        <div className="hidden md:flex items-center gap-4">
-          {!loading && user ? (
-            <button
-              onClick={() => handleLinkClick('/dashboard')}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-neutral-900 hover:bg-neutral-800 rounded-xl shadow-xs transition-all duration-150 cursor-pointer"
-            >
-              <User className="w-4 h-4" />
-              <span>Mon espace</span>
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={() => handleLinkClick('/login')}
-                className={`transition-colors hover:text-neutral-900 text-sm font-semibold cursor-pointer ${
-                  currentRoute === '/login' ? 'text-qash-red-600' : 'text-neutral-600'
-                }`}
-              >
-                Se connecter
-              </button>
-              <button
-                onClick={onOpenStartModal}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-qash-red-500 hover:bg-qash-red-600 active:bg-qash-red-700 rounded-xl shadow-xs transition-all duration-150 cursor-pointer hover:shadow-sm"
-              >
-                <span>Commencer avec QASH</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </>
-          )}
+        <div className="hidden items-center gap-2 lg:flex">
+          <AppLink to={accountLink.to} className={buttonClasses('quiet', 'md')}>
+            {accountLink.label}
+          </AppLink>
+          <AppLink to="/telecharger" className={buttonClasses('primary', 'md')}>
+            Télécharger
+          </AppLink>
         </div>
 
-        {/* Mobile Menu Trigger */}
-        <div className="flex md:hidden items-center gap-2">
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors cursor-pointer"
-            aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-      </div>
+        <button
+          ref={menuButtonRef}
+          type="button"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-field lg:hidden"
+          aria-expanded={open}
+          aria-controls="menu-mobile"
+          aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
+        </button>
+      </Container>
 
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-b border-neutral-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-lg animate-in slide-in-from-top-2 duration-150">
-          <div className="flex flex-col space-y-1">
-            <button
-              onClick={() => handleLinkClick('/')}
-              className={`w-full text-left px-3 py-2.5 rounded-lg text-base font-medium transition-colors cursor-pointer ${
-                currentRoute === '/'
-                  ? 'bg-qash-red-50 text-qash-red-600 font-semibold'
-                  : 'text-neutral-700 hover:bg-neutral-50'
-              }`}
-            >
-              Accueil
-            </button>
-            <button
-              onClick={() => handleLinkClick('/', '#features')}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-base font-medium text-neutral-700 hover:bg-neutral-50 transition-colors cursor-pointer"
-            >
-              Fonctionnalités
-            </button>
-            <button
-              onClick={() => handleLinkClick('/', '#how-it-works')}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-base font-medium text-neutral-700 hover:bg-neutral-50 transition-colors cursor-pointer"
-            >
-              Comment ça marche
-            </button>
-            <button
-              onClick={() => handleLinkClick('/pricing')}
-              className={`w-full text-left px-3 py-2.5 rounded-lg text-base font-medium transition-colors cursor-pointer ${
-                currentRoute === '/pricing'
-                  ? 'bg-qash-red-50 text-qash-red-600 font-semibold'
-                  : 'text-neutral-700 hover:bg-neutral-50'
-              }`}
-            >
-              Pricing
-            </button>
-            
-            {!loading && user ? (
-              <button
-                onClick={() => handleLinkClick('/dashboard')}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-base font-medium transition-colors cursor-pointer ${
-                  currentRoute === '/dashboard'
-                    ? 'bg-neutral-100 text-neutral-900 font-semibold'
-                    : 'text-neutral-700 hover:bg-neutral-50'
-                }`}
-              >
-                Mon espace Dashboard
-              </button>
-            ) : (
-              <button
-                onClick={() => handleLinkClick('/login')}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-base font-medium transition-colors cursor-pointer ${
-                  currentRoute === '/login'
-                    ? 'bg-neutral-100 text-neutral-900 font-semibold'
-                    : 'text-neutral-700 hover:bg-neutral-50'
-                }`}
-              >
-                Se connecter
-              </button>
-            )}
-          </div>
-
-          <div className="pt-2">
-            {!loading && user ? (
-              <button
-                onClick={() => handleLinkClick('/dashboard')}
-                className="w-full py-3 px-4 text-center font-semibold text-white bg-neutral-900 hover:bg-neutral-800 rounded-xl transition-colors shadow-xs cursor-pointer"
-              >
-                Aller au Dashboard
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenStartModal();
-                }}
-                className="w-full py-3 px-4 text-center font-semibold text-white bg-qash-red-500 hover:bg-qash-red-600 rounded-xl transition-colors shadow-xs cursor-pointer"
-              >
-                Commencer avec QASH
-              </button>
-            )}
-          </div>
+      {open && (
+        <div id="menu-mobile" className="fixed inset-x-0 bottom-0 top-[72px] z-40 overflow-y-auto bg-white lg:hidden">
+          <Container className="flex min-h-full flex-col pb-8 pt-4">
+            <nav aria-label="Navigation principale">
+              <ul>
+                {NAV_LINKS.map((link, i) => (
+                  <li key={link.to}>
+                    <AppLink
+                      ref={i === 0 ? firstLinkRef : undefined}
+                      to={link.to}
+                      aria-current={currentRoute === link.to ? 'page' : undefined}
+                      className={`flex min-h-14 items-center text-3xl font-black tracking-tight ${
+                        currentRoute === link.to ? 'text-brand-red' : 'text-ink'
+                      }`}
+                    >
+                      {link.label}
+                    </AppLink>
+                  </li>
+                ))}
+                <li>
+                  <AppLink to="/comment-ca-marche" className="flex min-h-14 items-center text-3xl font-black tracking-tight">
+                    Comment ça marche
+                  </AppLink>
+                </li>
+              </ul>
+            </nav>
+            <div className="mt-auto grid gap-3 pt-10">
+              <AppLink to="/telecharger" className={buttonClasses('primary', 'lg', 'w-full')}>
+                Télécharger l&apos;app
+              </AppLink>
+              <AppLink to={accountLink.to} className={buttonClasses('quiet', 'lg', 'w-full')}>
+                {accountLink.label}
+              </AppLink>
+            </div>
+          </Container>
         </div>
       )}
     </header>

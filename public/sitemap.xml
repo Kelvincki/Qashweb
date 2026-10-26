@@ -1,23 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>/pricing</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>/privacy</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>/legal</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
+  <url><loc>https://www.useqash.com/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.useqash.com/fonctionnalites</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.useqash.com/tarifs</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.useqash.com/metiers</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.useqash.com/comment-ca-marche</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.useqash.com/telecharger</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.useqash.com/faq</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.useqash.com/contact</loc><changefreq>yearly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.useqash.com/mentions-legales</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://www.useqash.com/confidentialite</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://www.useqash.com/conditions</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://www.useqash.com/cookies</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://www.useqash.com/suppression-compte</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

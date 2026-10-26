@@ -1,4 +1,9 @@
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /auth/
+Disallow: /paiement/
+Disallow: /reset-password
+Disallow: /join
 
-Sitemap: /sitemap.xml
+Sitemap: https://www.useqash.com/sitemap.xml

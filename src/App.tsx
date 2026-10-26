@@ -1,189 +1,148 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
-import { StartModal } from './components/StartModal';
-import { HomePage } from './pages/HomePage';
-import { PricingPage } from './pages/PricingPage';
-import { PrivacyPage } from './pages/PrivacyPage';
-import { LegalPage } from './pages/LegalPage';
-import { TermsPage } from './pages/TermsPage';
-import { DeleteAccountPage } from './pages/DeleteAccountPage';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { AuthCallbackPage } from './pages/AuthCallbackPage';
-import { PaymentSuccessPage } from './pages/PaymentSuccessPage';
-import { PaymentCanceledPage } from './pages/PaymentCanceledPage';
-import { CookiesPage } from './pages/CookiesPage';
-import { JoinPage } from './pages/JoinPage';
-import { BienvenuePage } from './pages/BienvenuePage';
-import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { CookieNotice } from './components/CookieNotice';
 import { AuthProvider } from './components/AuthContext';
+import { HomePage } from './pages/HomePage';
 import { PageRoute } from './types';
+import { VALID_ROUTES, ROUTE_META, NOT_FOUND_META } from './config/routes';
+import { CurrentRoute, NavigationProvider } from './lib/navigation';
+import { applyRouteMeta } from './lib/seo';
 
-const VALID_ROUTES: PageRoute[] = [
-  '/',
-  '/pricing',
-  '/privacy',
-  '/legal',
-  '/cgu',
-  '/terms',
-  '/suppression-compte',
-  '/suppression-donnees',
-  '/delete-account',
-  '/login',
-  '/register',
-  '/dashboard',
-  '/auth/callback',
-  '/paiement/succes',
-  '/paiement/annule',
-  '/cookies',
-  '/join',
-  '/bienvenue',
-  '/reset-password',
-];
+// Pages chargées à la demande : la page d'accueil reste dans le paquet principal,
+// le reste n'est téléchargé que si on l'ouvre (important sur 3G).
+function page<K extends string>(loader: () => Promise<Record<K, React.ComponentType<any>>>, name: K) {
+  return lazy(() => loader().then((m) => ({ default: m[name] })));
+}
+
+const PricingPage = page(() => import('./pages/PricingPage'), 'PricingPage');
+const PrivacyPage = page(() => import('./pages/PrivacyPage'), 'PrivacyPage');
+const LegalPage = page(() => import('./pages/LegalPage'), 'LegalPage');
+const TermsPage = page(() => import('./pages/TermsPage'), 'TermsPage');
+const CookiesPage = page(() => import('./pages/CookiesPage'), 'CookiesPage');
+const DeleteAccountPage = page(() => import('./pages/DeleteAccountPage'), 'DeleteAccountPage');
+const LoginPage = page(() => import('./pages/LoginPage'), 'LoginPage');
+const RegisterPage = page(() => import('./pages/RegisterPage'), 'RegisterPage');
+const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage');
+const AuthCallbackPage = page(() => import('./pages/AuthCallbackPage'), 'AuthCallbackPage');
+const PaymentSuccessPage = page(() => import('./pages/PaymentSuccessPage'), 'PaymentSuccessPage');
+const PaymentCanceledPage = page(() => import('./pages/PaymentCanceledPage'), 'PaymentCanceledPage');
+const JoinPage = page(() => import('./pages/JoinPage'), 'JoinPage');
+const BienvenuePage = page(() => import('./pages/BienvenuePage'), 'BienvenuePage');
+const ResetPasswordPage = page(() => import('./pages/ResetPasswordPage'), 'ResetPasswordPage');
+const NotFoundPage = page(() => import('./pages/NotFoundPage'), 'NotFoundPage');
+
+function resolveRoute(): CurrentRoute {
+  if (typeof window === 'undefined') return '/';
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  if (VALID_ROUTES.includes(path as PageRoute)) return path as PageRoute;
+  // Ancien format : /#/route
+  const hash = window.location.hash.replace(/^#/, '');
+  if (VALID_ROUTES.includes(hash as PageRoute)) return hash as PageRoute;
+  return 'not-found';
+}
+
+function renderPage(route: CurrentRoute, navigate: (route: PageRoute, hash?: string) => void) {
+  switch (route) {
+    case '/':
+      return <HomePage />;
+    case '/pricing':
+      return <PricingPage onNavigate={navigate} />;
+    case '/confidentialite':
+    case '/privacy':
+      return <PrivacyPage onNavigate={navigate} />;
+    case '/mentions-legales':
+    case '/legal':
+      return <LegalPage onNavigate={navigate} />;
+    case '/conditions':
+    case '/cgu':
+    case '/terms':
+      return <TermsPage onNavigate={navigate} />;
+    case '/cookies':
+      return <CookiesPage onNavigate={navigate} />;
+    case '/suppression-compte':
+    case '/suppression-donnees':
+    case '/delete-account':
+      return <DeleteAccountPage onNavigate={navigate} />;
+    case '/login':
+      return <LoginPage onNavigate={navigate} />;
+    case '/register':
+      return <RegisterPage onNavigate={navigate} />;
+    case '/dashboard':
+      return <DashboardPage onNavigate={navigate} />;
+    case '/auth/callback':
+      return <AuthCallbackPage onNavigate={navigate} />;
+    case '/paiement/succes':
+      return <PaymentSuccessPage onNavigate={navigate} />;
+    case '/paiement/annule':
+      return <PaymentCanceledPage onNavigate={navigate} />;
+    case '/join':
+      return <JoinPage onNavigate={navigate} />;
+    case '/bienvenue':
+      return <BienvenuePage onNavigate={navigate} />;
+    case '/reset-password':
+      return <ResetPasswordPage onNavigate={navigate} />;
+    default:
+      return <NotFoundPage />;
+  }
+}
 
 export default function App() {
-  const [currentRoute, setCurrentRoute] = useState<PageRoute>(() => {
-    if (typeof window !== 'undefined') {
-      const path = window.location.pathname;
-      if (VALID_ROUTES.includes(path as PageRoute)) {
-        return path as PageRoute;
-      }
-      // Check hash route fallback if applicable
-      const hash = window.location.hash.replace(/^#/, '');
-      if (VALID_ROUTES.includes(hash as PageRoute)) {
-        return hash as PageRoute;
-      }
-    }
-    return '/';
-  });
+  const [currentRoute, setCurrentRoute] = useState<CurrentRoute>(resolveRoute);
+  const mainRef = useRef<HTMLElement>(null);
+  const isFirstRender = useRef(true);
 
-  const [isStartModalOpen, setIsStartModalOpen] = useState(false);
-
-  // Sync with browser history popstate
+  // Retour / avance du navigateur
   useEffect(() => {
-    const handlePopState = () => {
-      const path = window.location.pathname;
-      if (VALID_ROUTES.includes(path as PageRoute)) {
-        setCurrentRoute(path as PageRoute);
-      } else {
-        const hash = window.location.hash.replace(/^#/, '');
-        if (VALID_ROUTES.includes(hash as PageRoute)) {
-          setCurrentRoute(hash as PageRoute);
-        } else {
-          setCurrentRoute('/');
-        }
-      }
-    };
-
+    const handlePopState = () => setCurrentRoute(resolveRoute());
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const navigate = (route: PageRoute, hash?: string) => {
-    setCurrentRoute(route);
+  // Titre, description, Open Graph et URL canonique de chaque page
+  useEffect(() => {
+    const meta = currentRoute === 'not-found' ? NOT_FOUND_META : ROUTE_META[currentRoute];
+    applyRouteMeta(meta, currentRoute === 'not-found' ? window.location.pathname : currentRoute);
+  }, [currentRoute]);
 
-    const targetUrl = route === '/' && hash ? `${route}${hash}` : route;
-    if (window.location.pathname !== route || (hash && window.location.hash !== hash)) {
+  // Après une navigation interne : focus sur le contenu (lecteurs d'écran, clavier)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (!window.location.hash) mainRef.current?.focus({ preventScroll: true });
+  }, [currentRoute]);
+
+  const navigate = useCallback((route: PageRoute, hash?: string) => {
+    setCurrentRoute(route);
+    const targetUrl = hash ? `${route}${hash}` : route;
+    if (window.location.pathname !== route || (hash && window.location.hash !== hash) || (!hash && window.location.hash)) {
       window.history.pushState(null, '', targetUrl);
     }
-
     if (hash) {
       setTimeout(() => {
-        const element = document.querySelector(hash);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 50);
+        document.querySelector(hash)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 80);
     } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     }
-  };
+  }, []);
 
   return (
     <AuthProvider>
-      <div className="min-h-screen flex flex-col bg-neutral-50 text-neutral-900 selection:bg-rose-600 selection:text-white">
-        {/* Header */}
-        <Header
-          currentRoute={currentRoute}
-          onNavigate={navigate}
-          onOpenStartModal={() => setIsStartModalOpen(true)}
-        />
-
-        {/* Main Content */}
-        <main className="flex-1">
-          {currentRoute === '/' && (
-            <HomePage
-              onNavigate={navigate}
-              onOpenStartModal={() => setIsStartModalOpen(true)}
-            />
-          )}
-          {currentRoute === '/pricing' && (
-            <PricingPage
-              onNavigate={navigate}
-              onOpenStartModal={() => setIsStartModalOpen(true)}
-            />
-          )}
-          {currentRoute === '/privacy' && (
-            <PrivacyPage onNavigate={navigate} />
-          )}
-          {currentRoute === '/legal' && (
-            <LegalPage onNavigate={navigate} />
-          )}
-          {(currentRoute === '/cgu' || currentRoute === '/terms') && (
-            <TermsPage onNavigate={navigate} />
-          )}
-          {(currentRoute === '/suppression-compte' || currentRoute === '/suppression-donnees' || currentRoute === '/delete-account') && (
-            <DeleteAccountPage onNavigate={navigate} />
-          )}
-          {currentRoute === '/login' && (
-            <LoginPage onNavigate={navigate} />
-          )}
-          {currentRoute === '/register' && (
-            <RegisterPage onNavigate={navigate} />
-          )}
-          {currentRoute === '/dashboard' && (
-            <DashboardPage onNavigate={navigate} />
-          )}
-          {currentRoute === '/auth/callback' && (
-            <AuthCallbackPage onNavigate={navigate} />
-          )}
-          {currentRoute === '/paiement/succes' && (
-            <PaymentSuccessPage onNavigate={navigate} />
-          )}
-          {currentRoute === '/paiement/annule' && (
-            <PaymentCanceledPage onNavigate={navigate} />
-          )}
-          {currentRoute === '/cookies' && (
-            <CookiesPage onNavigate={navigate} />
-          )}
-          {currentRoute === '/join' && (
-            <JoinPage onNavigate={navigate} />
-          )}
-          {currentRoute === '/bienvenue' && (
-            <BienvenuePage onNavigate={navigate} />
-          )}
-          {currentRoute === '/reset-password' && (
-            <ResetPasswordPage onNavigate={navigate} />
-          )}
-        </main>
-
-        {/* Footer */}
-        <Footer onNavigate={navigate} />
-
-        {/* Onboarding Dialog */}
-        <StartModal
-          isOpen={isStartModalOpen}
-          onClose={() => setIsStartModalOpen(false)}
-        />
-      </div>
+      <NavigationProvider value={{ currentRoute, navigate }}>
+        <div className="flex min-h-screen flex-col bg-white text-ink">
+          <Header />
+          <main id="contenu" ref={mainRef} tabIndex={-1} className="flex-1 outline-none">
+            <Suspense fallback={<div className="min-h-[70vh]" aria-busy="true" />}>
+              {renderPage(currentRoute, navigate)}
+            </Suspense>
+          </main>
+          <Footer />
+          <CookieNotice />
+        </div>
+      </NavigationProvider>
     </AuthProvider>
   );
 }
-
