@@ -2,10 +2,12 @@ import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } fr
 import { MapPin, Search } from 'lucide-react';
 import { SITE_URL } from '../config/site';
 import { isValidSlug } from '../lib/shopSlug';
-import { Shop, clearCachedShop, fetchCatalog, imageUrl, readCachedShop, writeCachedShop } from './api';
+import { Shop, ShopProduct, clearCachedShop, fetchCatalog, imageUrl, readCachedShop, writeCachedShop } from './api';
 import { buttonClasses } from '../components/ui/Button';
 import { Container } from '../components/ui/Layout';
-import { fold, sanitizeWhatsapp, whatsappUrl } from './format';
+import { fold, formatPrice, sanitizeWhatsapp, whatsappUrl } from './format';
+import { Cart, cartLines, changeQty, loadCart, reconcile, saveCart } from './cart';
+import { CartSheet } from './CartSheet';
 import { applyShopMeta } from './meta';
 import { ProductCard } from './ProductCard';
 
@@ -27,6 +29,37 @@ export const ShopApp: React.FC<{ slug: string }> = ({ slug }) => {
   const [visible, setVisible] = useState(PAGE_SIZE);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
+
+  // Panier (sans compte) : gardé sur l'appareil, rien n'est envoyé à nos serveurs
+  const [cart, setCart] = useState<Cart>(() => loadCart(slug));
+  const [cartOpen, setCartOpen] = useState(false);
+  const [droppedNotice, setDroppedNotice] = useState(false);
+
+  useEffect(() => saveCart(slug, cart), [slug, cart]);
+
+  // Quand le catalogue arrive ou change : retire les produits disparus ou en rupture
+  useEffect(() => {
+    if (!shop) return;
+    const result = reconcile(cart, shop.products);
+    if (result.dropped > 0) {
+      setCart(result.cart);
+      setDroppedNotice(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shop]);
+
+  const onChangeQty = useCallback((product: ShopProduct, direction: 1 | -1) => setCart((c) => changeQty(c, product, direction)), []);
+  const onRemove = useCallback((id: string) => setCart((c) => {
+    const { [id]: _removed, ...rest } = c;
+    return rest;
+  }), []);
+  const onClear = useCallback(() => {
+    setCart({});
+    setCartOpen(false);
+  }, []);
+  const closeCart = useCallback(() => setCartOpen(false), []);
+
+  const { lines, total } = useMemo(() => (shop ? cartLines(cart, shop.products) : { lines: [], total: 0 }), [cart, shop]);
 
   // Chargement : dernier catalogue connu tout de suite, puis actualisation depuis le serveur
   useEffect(() => {
@@ -164,7 +197,7 @@ export const ShopApp: React.FC<{ slug: string }> = ({ slug }) => {
         </Container>
       </header>
 
-      <main className="flex-1 pb-12">
+      <main className={`flex-1 ${lines.length > 0 ? 'pb-32' : 'pb-12'}`}>
         {/* Recherche et catégories, toujours à portée de pouce */}
         <div className="sticky top-0 z-20 bg-white py-3">
           <Container>
@@ -211,6 +244,15 @@ export const ShopApp: React.FC<{ slug: string }> = ({ slug }) => {
             </p>
           )}
 
+          {droppedNotice && (
+            <p className="mb-4 rounded-2xl bg-warning-soft p-4 text-base" role="status">
+              Certains articles de votre panier ne sont plus disponibles : ils ont été retirés.{' '}
+              <button type="button" onClick={() => setDroppedNotice(false)} className="font-bold underline decoration-2 underline-offset-4">
+                Fermer
+              </button>
+            </p>
+          )}
+
           {shop.products.length === 0 ? (
             <EmptyMessage title="Cette boutique n'a pas encore de produits." text="Revenez bientôt, ou écrivez directement à la boutique." />
           ) : filtered.length === 0 ? (
@@ -222,7 +264,7 @@ export const ShopApp: React.FC<{ slug: string }> = ({ slug }) => {
               </p>
               <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {filtered.slice(0, visible).map((p, i) => (
-                  <ProductCard key={p.id} product={p} priority={i < 2} />
+                  <ProductCard key={p.id} product={p} qty={cart[p.id] ?? 0} onChange={onChangeQty} priority={i < 2} />
                 ))}
               </ul>
               {visible < filtered.length && (
@@ -238,6 +280,34 @@ export const ShopApp: React.FC<{ slug: string }> = ({ slug }) => {
       </main>
 
       <ShopFooter />
+
+      {lines.length > 0 && !cartOpen && (
+        <div className="fixed inset-x-0 bottom-0 z-30 bg-ink p-3">
+          <button type="button" onClick={() => setCartOpen(true)} className={buttonClasses('yellow', 'lg', 'w-full justify-between gap-3 px-6')}>
+            <span>
+              Mon panier · {lines.length} produit{lines.length > 1 ? 's' : ''}
+            </span>
+            <span>{formatPrice(total)}</span>
+          </button>
+        </div>
+      )}
+
+      {cartOpen && (
+        <CartSheet
+          shopTitle={shop.title}
+          slug={slug}
+          whatsappDigits={whatsappDigits}
+          lines={lines}
+          total={total}
+          onChange={(id, direction) => {
+            const p = shop.products.find((x) => x.id === id);
+            if (p) onChangeQty(p, direction);
+          }}
+          onRemove={onRemove}
+          onClear={onClear}
+          onClose={closeCart}
+        />
+      )}
     </div>
   );
 };
