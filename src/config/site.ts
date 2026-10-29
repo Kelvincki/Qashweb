@@ -17,10 +17,10 @@ export const WHATSAPP_NUMBER = '';
 
 /**
  * Adresse e-mail de contact.
- * TODO : confirmer l'adresse officielle (domaine useqash.com ?). Valeur actuelle reprise
- * de l'existant (CGU, page de suppression de compte, pages de paiement).
+ * Adresse officielle (domaine useqash.com), utilisée par les pages légales, la FAQ,
+ * Contact et la suppression de compte.
  */
-export const CONTACT_EMAIL = 'contact@qashapp.com';
+export const CONTACT_EMAIL = 'contact@useqash.com';
 
 /** Horaires de réponse affichés sur la page Contact. TODO : renseigner (ex. « Lun–sam, 9 h–19 h »). */
 export const CONTACT_HOURS = '';
