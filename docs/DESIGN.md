@@ -88,6 +88,22 @@ Les règles du brief passent avant les conseils du skill. Écarts volontaires :
 
 Discret : apparition des sections (opacité + 18 px, 0,5 s, une fois), retour au clic sur les boutons, survols. Tout est coupé si `prefers-reduced-motion: reduce`. Aucune bibliothèque d’animation (la dépendance `motion` a été retirée).
 
+### Emplacements d'animation (`MotionSlot`)
+
+`<MotionSlot id="…" />` (`src/components/ui/MotionSlot.tsx`) lit `src/config/motion.ts` (`{ src, srcWebm, poster, alt, ratio }`). Chemins du site (`/motion/…`) ou liens `https://` complets. Comportement :
+
+- le **poster** s'affiche d'abord ; la vidéo n'est montée que lorsque l'emplacement approche de l'écran (chargement paresseux), puis joue **muette, en boucle, seulement quand elle est visible** ;
+- avec `prefers-reduced-motion: reduce` : poster fixe, aucune vidéo chargée ;
+- les proportions (`ratio`) sont réservées d'avance : aucun décalage de mise en page ;
+- si `src` et `srcWebm` sont vides (ou si la vidéo échoue sans poster), l'emplacement affiche l'illustration actuelle de la page (le contenu passé en `children`, ou rien).
+
+| Slot (`id`) | Où | Ratio | Repli (vidéo vide) | Fichiers attendus (`public/motion/`) |
+| --- | --- | --- | --- | --- |
+| `hors-ligne-synchro` | Accueil, section « Ça marche sans internet » | 16/9 | rien : les trois colonnes de texte restent | `qash_site_hors-ligne-synchro_16x9` (.mp4, .webm, `_poster.png`) |
+| `trois-etapes` | `/fonctionnalites` (Hors ligne et synchronisation) et `/comment-ca-marche` (Et sans internet ?) | 16/9 | rien : les trois étapes de texte restent | `qash_site_3-etapes_16x9` (.mp4, .webm, `_poster.png`) |
+
+Les emplacements sont vides tant que les vidéos ne sont pas déposées (étape S3).
+
 ## Performance
 
 - Pages chargées à la demande (`React.lazy`) : l'accueil seul est dans le paquet principal.
