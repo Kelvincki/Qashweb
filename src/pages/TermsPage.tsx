@@ -70,7 +70,7 @@ export const TermsPage: React.FC<TermsPageProps> = () => (
         <li><strong>Calcul des tarifs :</strong> les prix sont systématiquement calculés de manière sécurisée côté serveur en fonction du nombre d&apos;utilisateurs et de la formule retenue.</li>
         <li><strong>Paiement mobile money :</strong> les règlements sont opérés via des passerelles agréées (telles que SenePay, Wave, Orange Money). QASH ne stocke aucune coordonnée bancaire confidentielle.</li>
         <li><strong>Activation :</strong> l&apos;activation de l&apos;abonnement intervient dès confirmation par le serveur du succès de la transaction.</li>
-        <li><strong>Non-renouvellement :</strong> en l&apos;absence de paiement à l&apos;échéance, l&apos;accès aux fonctions avancées est suspendu, mais les données locales du commerçant demeurent protégées.</li>
+        <li><strong>Non-renouvellement :</strong> en l&apos;absence de paiement à l&apos;échéance et à l&apos;issue de la période de grâce, la boutique passe en « lecture seule ». Les données du commerçant sont conservées.</li>
       </LegalList>
     </LegalSection>
 
