@@ -14,9 +14,9 @@ export const RESERVED_SUBDOMAINS = new Set([
   'webmail', 'shop', 'boutique', 'store', 'qash', 'useqash',
 ]);
 
-const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const SLUG_RE = /^[a-z0-9-]{3,30}$/;
 
-/** Syntaxe seulement : les noms réservés ne concernent que les sous-domaines (voir getShopSlug). */
+/** Syntaxe seulement (3 à 30 caractères : a-z, 0-9, tiret) : les noms réservés ne concernent que les sous-domaines (voir getShopSlug). */
 export function isValidSlug(slug: string): boolean {
   return SLUG_RE.test(slug);
 }

@@ -101,7 +101,7 @@ export function buildOrderMessage(opts: {
     const quantity = p.byWeight ? formatQty(qty, true).replace(' ', ' ') : String(qty);
     return `- ${label} x ${quantity} = ${plainPrice(amount)}`;
   });
-  const parts = [`Bonjour ${opts.shopTitle}, je voudrais commander :`, ...rows, '', `Total : ${plainPrice(opts.total)}`];
+  const parts = [`Bonjour ${opts.shopTitle}, je voudrais commander :`, ...rows, '', `Total : ${plainPrice(opts.total)}`, 'Commande à confirmer avec le commerçant.'];
   const name = opts.customerName.trim();
   const where = opts.addressOrPickup.trim();
   if (name || where) parts.push('');

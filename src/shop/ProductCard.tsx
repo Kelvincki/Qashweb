@@ -18,7 +18,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, qty, onChange
   const unit = priceUnit(product);
 
   return (
-    <li className="flex flex-col overflow-hidden rounded-[1.5rem] bg-field">
+    <li className={`flex flex-col overflow-hidden rounded-[1.5rem] bg-field ${product.available ? '' : 'text-ink/60'}`}>
       {/* Dimensions réservées : la grille ne bouge pas pendant le chargement des photos */}
       <div className="relative aspect-square w-full bg-field-strong">
         {src ? (
