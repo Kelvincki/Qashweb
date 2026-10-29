@@ -6,6 +6,7 @@ import { ButtonLink } from '../components/ui/Button';
 import { PhoneMockup } from '../components/ui/PhoneMockup';
 import { FaqList, FaqEntry } from '../components/ui/Faq';
 import { CtaBand } from '../components/ui/CtaBand';
+import { MotionSlot } from '../components/ui/MotionSlot';
 import { AppLink } from '../lib/navigation';
 import { PRICING, formatFcfa } from '../config/site';
 import { TRADES } from '../content/trades';
@@ -53,6 +54,15 @@ const SHORT_FAQ: FaqEntry[] = [
       <p>
         Oui. Vous encaissez et gérez votre stock sans connexion : tout est enregistré sur le téléphone. Dès que vous
         retrouvez internet, QASH synchronise automatiquement vos données.
+      </p>
+    ),
+  },
+  {
+    question: 'Puis-je perdre des ventes si le réseau coupe ?',
+    answer: (
+      <p>
+        Non. Chaque vente est enregistrée sur le téléphone, même sans internet. Elle part sur le serveur dès que le
+        réseau revient.
       </p>
     ),
   },
@@ -121,19 +131,19 @@ export const HomePage: React.FC = () => {
       <Section tone="red">
         <Container>
           <Reveal>
-            <h2 className="max-w-[16ch] text-headline font-black">{nb('Pas de réseau ? Vous vendez quand même.')}</h2>
+            <h2 className="max-w-[16ch] text-headline font-black">{nb('Ça marche sans internet.')}</h2>
           </Reveal>
           <div className="mt-12 grid gap-10 lg:grid-cols-12">
             <Reveal className="lg:col-span-6" delay={80}>
               <p className="text-xl leading-relaxed">
-                Les coupures arrivent. Avec QASH, chaque vente est enregistrée sur le téléphone, même hors ligne. Dès
-                que vous retrouvez internet, tout se synchronise automatiquement.
+                Les coupures arrivent. Avec QASH, chaque vente est enregistrée sur le téléphone, même hors ligne : vous
+                ne perdez aucune vente. Dès que vous retrouvez internet, tout se synchronise automatiquement.
               </p>
             </Reveal>
             <ul className="grid gap-8 sm:grid-cols-3 lg:col-span-6">
               {[
-                ['Hors ligne', 'La caisse et le stock marchent.'],
-                ['De retour en ligne', 'Les ventes partent sur le serveur.'],
+                ['Sans internet', 'La caisse et le stock marchent.'],
+                ['Retour du réseau', 'La synchronisation est automatique.'],
                 ['Pour toute l’équipe', 'Le gérant retrouve les ventes de chacun.'],
               ].map(([title, text], i) => (
                 <Reveal as="li" key={title} delay={120 + i * 80}>
@@ -143,6 +153,7 @@ export const HomePage: React.FC = () => {
               ))}
             </ul>
           </div>
+          <MotionSlot id="hors-ligne-synchro" className="mt-12 max-w-[56rem]" />
         </Container>
       </Section>
 

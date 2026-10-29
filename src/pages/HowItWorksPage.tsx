@@ -5,6 +5,8 @@ import { QIcon } from '../components/ui/Logo';
 import { DownloadButton } from '../components/ui/DownloadButton';
 import { ButtonLink } from '../components/ui/Button';
 import { CtaBand } from '../components/ui/CtaBand';
+import { FaqList, FaqEntry } from '../components/ui/Faq';
+import { MotionSlot } from '../components/ui/MotionSlot';
 import { MockupId } from '../config/mockups';
 import { PRICING } from '../config/site';
 import { nb } from '../lib/typo';
@@ -31,6 +33,34 @@ const STEPS: Array<{ title: string; text: string; mockup?: MockupId; tone: 'pape
     text: "Touchez les produits, encaissez. Le stock baisse tout seul et chaque vente est enregistrée, même sans internet.",
     mockup: 'caisse',
     tone: 'ink',
+  },
+];
+
+const OFFLINE_FAQ: FaqEntry[] = [
+  {
+    question: 'Que se passe-t-il sans internet ?',
+    answer: (
+      <p>
+        Vous continuez à vendre. Chaque vente est enregistrée sur le téléphone. Au retour du réseau, la synchronisation
+        est automatique.
+      </p>
+    ),
+  },
+  {
+    question: 'Mes employés voient-ils leurs ventes chez moi ?',
+    answer: (
+      <p>
+        Oui. Une fois le téléphone de l&apos;employé synchronisé, ses ventes apparaissent chez vous, le gérant.
+      </p>
+    ),
+  },
+  {
+    question: 'Puis-je perdre des ventes ?',
+    answer: (
+      <p>
+        Pas à cause d&apos;une coupure de réseau : la vente reste sur le téléphone jusqu&apos;à sa synchronisation.
+      </p>
+    ),
   },
 ];
 
@@ -99,6 +129,20 @@ export const HowItWorksPage: React.FC = () => (
         </li>
       ))}
     </ol>
+
+    <Section tone="field">
+      <Container>
+        <div className="grid gap-10 lg:grid-cols-12">
+          <Reveal className="lg:col-span-4">
+            <h2 className="text-headline font-black">{nb('Et sans internet ?')}</h2>
+          </Reveal>
+          <div className="lg:col-span-8">
+            <FaqList items={OFFLINE_FAQ} tone="field" />
+          </div>
+        </div>
+        <MotionSlot id="trois-etapes" className="mt-12 max-w-[56rem]" />
+      </Container>
+    </Section>
 
     <Section tone="paper">
       <Container>

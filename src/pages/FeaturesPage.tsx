@@ -3,6 +3,7 @@ import { Check } from 'lucide-react';
 import { Container, PageHero, Reveal, Section } from '../components/ui/Layout';
 import { PhoneMockup } from '../components/ui/PhoneMockup';
 import { CtaBand } from '../components/ui/CtaBand';
+import { MotionSlot } from '../components/ui/MotionSlot';
 import { DownloadButton } from '../components/ui/DownloadButton';
 import { ButtonLink } from '../components/ui/Button';
 import { FEATURES, Feature } from '../content/features';
@@ -67,6 +68,23 @@ const FeatureSection: React.FC<{ feature: Feature; index: number }> = ({ feature
             <PointList points={feature.points} onDark={offline} />
           </div>
         </div>
+        {feature.steps && (
+          <ol className="mt-14 grid gap-8 sm:grid-cols-3">
+            {feature.steps.map((step, i) => (
+              <Reveal as="li" key={step.title} delay={i * 80}>
+                <p
+                  aria-hidden="true"
+                  className={`text-[clamp(3rem,2.4rem+3vw,5rem)] font-black leading-none ${offline ? 'text-brand-yellow' : 'text-brand-red'}`}
+                >
+                  {i + 1}
+                </p>
+                <h3 className="mt-3 text-title font-black">{step.title}</h3>
+                <p className="mt-2 text-lg leading-snug">{nb(step.text)}</p>
+              </Reveal>
+            ))}
+          </ol>
+        )}
+        {offline && <MotionSlot id="trois-etapes" className="mt-12 max-w-[56rem]" />}
       </Container>
     </Section>
   );
@@ -76,7 +94,7 @@ export const FeaturesPage: React.FC = () => (
   <>
     <PageHero
       title="Tout ce que fait QASH."
-      intro="Une caisse, un stock, un cahier de dettes et vos comptes, dans un seul téléphone Android. Et tout marche sans internet."
+      intro="Une caisse, un stock, un cahier de dettes et vos comptes, dans un seul téléphone Android. Et tout marche sans internet, puis se synchronise."
     >
       <DownloadButton />
       <ButtonLink to="/tarifs" variant="quiet" size="lg">

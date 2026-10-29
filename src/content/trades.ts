@@ -9,6 +9,8 @@ export interface Trade {
   short: string;
   intro: string;
   points: string[];
+  /** Une ligne sur le fonctionnement sans internet, propre au métier. */
+  offline: string;
 }
 
 export const TRADES: Trade[] = [
@@ -24,6 +26,7 @@ export const TRADES: Trade[] = [
       'La vente au poids pour le riz, l’oignon ou la pomme de terre vendus au kilo.',
       'Le cahier de dettes pour les clients qui paient à la fin du mois.',
     ],
+    offline: 'Le réseau coupe au milieu de la matinée ? Vous continuez à encaisser, les ventes partent au retour du réseau.',
   },
   {
     id: 'restaurant',
@@ -36,6 +39,7 @@ export const TRADES: Trade[] = [
       'Vos ingrédients et la recette de chaque plat, pour suivre ce que vous consommez.',
       'Les serveurs encaissent, le gérant suit le bilan de la journée.',
     ],
+    offline: 'Pas de réseau en plein service ? Les serveurs encaissent quand même, le gérant retrouve leurs ventes après la synchronisation.',
   },
   {
     id: 'pharmacie',
@@ -48,6 +52,7 @@ export const TRADES: Trade[] = [
       'Un seuil d’alerte sur les produits demandés tous les jours.',
       "Chaque vente enregistrée avec l'heure et la personne qui l'a faite.",
     ],
+    offline: 'Sans internet, le scan et la caisse marchent. Les ventes se synchronisent quand le réseau revient.',
   },
   {
     id: 'quincaillerie',
@@ -61,6 +66,7 @@ export const TRADES: Trade[] = [
       'Le cahier de dettes pour les clients et pour vos fournisseurs.',
       'La photo de la facture fournisseur pour remplir votre stock plus vite.',
     ],
+    offline: 'Au fond du magasin ou à l’entrepôt, sans réseau, vous vendez comme d’habitude : rien ne se perd.',
   },
   {
     id: 'mode',
@@ -73,6 +79,7 @@ export const TRADES: Trade[] = [
       'Vos vendeurs encaissent pendant que vous êtes chez le fournisseur.',
       'Le bilan de la semaine ou du mois pour savoir où vous en êtes.',
     ],
+    offline: 'Vos vendeurs encaissent même sans réseau ; vous retrouvez leurs ventes une fois leurs téléphones synchronisés.',
   },
   {
     id: 'services',
@@ -85,5 +92,6 @@ export const TRADES: Trade[] = [
       'Le cahier de dettes pour les clients qui paient plus tard, même en plusieurs fois.',
       'Un rapport PDF pour faire le point à la fin du mois.',
     ],
+    offline: 'Dans l’atelier ou le salon, sans internet, chaque prestation est enregistrée puis synchronisée au retour du réseau.',
   },
 ];

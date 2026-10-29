@@ -61,6 +61,9 @@ export const TradesPage: React.FC = () => (
                     </Reveal>
                   ))}
                 </ul>
+                <p className="mt-8 text-lg font-bold leading-relaxed">
+                  Sans internet&nbsp;: <span className="font-normal">{nb(trade.offline)}</span>
+                </p>
               </div>
             </div>
           </Container>

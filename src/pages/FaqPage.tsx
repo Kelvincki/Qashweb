@@ -13,11 +13,30 @@ const GROUPS: Array<{ id: string; title: string; items: FaqEntry[] }> = [
     title: 'Hors ligne et synchronisation',
     items: [
       {
-        question: 'QASH marche-t-il sans internet ?',
+        question: 'Que se passe-t-il sans internet ?',
         answer: (
           <p>
-            Oui. La caisse, le stock et le cahier de dettes marchent sans connexion : tout est enregistré sur le
-            téléphone. Il faut seulement internet pour créer votre compte et pour synchroniser.
+            Rien ne s&apos;arrête. La caisse, le stock et le cahier de dettes marchent sans connexion : tout est
+            enregistré sur le téléphone. Il faut seulement internet pour créer votre compte et pour synchroniser.
+          </p>
+        ),
+      },
+      {
+        question: 'Mes employés voient-ils leurs ventes chez moi ?',
+        answer: (
+          <p>
+            Oui. Quand le téléphone de l&apos;employé se synchronise, ses ventes apparaissent chez le gérant, qui
+            retrouve ainsi les ventes de toute l&apos;équipe. L&apos;employé, lui, voit ses propres ventes.
+          </p>
+        ),
+      },
+      {
+        question: 'Puis-je perdre des ventes ?',
+        answer: (
+          <p>
+            Pas à cause d&apos;une coupure de réseau : chaque vente est enregistrée sur le téléphone, puis envoyée
+            automatiquement au retour d&apos;internet. Gardez simplement votre téléphone en bon état et connectez-le
+            régulièrement.
           </p>
         ),
       },

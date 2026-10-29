@@ -75,12 +75,12 @@ export const ROUTE_META: Record<PageRoute, RouteMeta> = {
   '/fonctionnalites': {
     title: 'Fonctionnalités — QASH',
     description:
-      'Caisse, stock et alertes, scan, bénéfice, équipe, cahier de dettes, rapports PDF, restaurant et mode hors ligne : tout ce que fait QASH.',
+      'Caisse qui marche sans internet, synchronisation automatique, stock et alertes, scan, bénéfice, équipe, cahier de dettes, rapports PDF et restaurant : tout ce que fait QASH.',
   },
   '/metiers': {
     title: 'Pour quel commerce ? — QASH',
     description:
-      'Boutique, restaurant, pharmacie, quincaillerie, mode, services : comment QASH aide chaque commerce au quotidien.',
+      'Boutique, restaurant, pharmacie, quincaillerie, mode, services : comment QASH aide chaque commerce au quotidien, même sans internet.',
   },
   '/tarifs': {
     title: 'Tarifs — QASH',
@@ -89,7 +89,7 @@ export const ROUTE_META: Record<PageRoute, RouteMeta> = {
   },
   '/comment-ca-marche': {
     title: 'Comment ça marche — QASH',
-    description: 'Installer, créer sa boutique, ajouter ses produits, vendre : QASH en quatre étapes.',
+    description: 'Installer, créer sa boutique, ajouter ses produits, vendre, même sans internet : QASH en quatre étapes.',
   },
   '/telecharger': {
     title: "Télécharger l'application — QASH",
@@ -98,7 +98,7 @@ export const ROUTE_META: Record<PageRoute, RouteMeta> = {
   '/faq': {
     title: 'Questions fréquentes — QASH',
     description:
-      'Hors ligne, sécurité des données, équipe, abonnement, essai gratuit : les réponses aux questions sur QASH.',
+      'Que se passe-t-il sans internet ? Synchronisation, sécurité des données, équipe, abonnement, essai gratuit : les réponses sur QASH.',
   },
   '/contact': {
     title: 'Contact — QASH',

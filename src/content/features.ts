@@ -10,9 +10,26 @@ export interface Feature {
   lead: string;
   points: string[];
   mockup?: MockupId;
+  /** Étapes numérotées affichées sous le texte (section Hors ligne). */
+  steps?: Array<{ title: string; text: string }>;
 }
 
 export const FEATURES: Feature[] = [
+  {
+    id: 'hors-ligne',
+    title: 'Hors ligne et synchronisation',
+    lead: 'Pas de réseau, pas de problème : la caisse continue de marcher.',
+    points: [
+      "Ventes, stock et dettes s'enregistrent sur le téléphone, sans internet.",
+      "Aucune vente n'est perdue en cas de coupure.",
+      "Le gérant retrouve les ventes de toute l'équipe une fois synchronisées.",
+    ],
+    steps: [
+      { title: 'Vous vendez', text: 'Sans internet, la caisse et le stock marchent comme d’habitude.' },
+      { title: 'La vente patiente', text: 'Chaque vente reste enregistrée sur le téléphone en attendant le réseau.' },
+      { title: 'Tout se synchronise', text: 'Au retour du réseau, la synchronisation est automatique. Vous n’avez rien à faire.' },
+    ],
+  },
   {
     id: 'caisse',
     title: 'Caisse et ventes',
@@ -95,16 +112,6 @@ export const FEATURES: Feature[] = [
       'Déclarez vos ingrédients et la recette de chaque plat.',
       "Encaissez les plats comme n'importe quel produit.",
       'Suivez ce que vous consommez en cuisine.',
-    ],
-  },
-  {
-    id: 'hors-ligne',
-    title: 'Fonctionne hors ligne',
-    lead: 'Pas de réseau, pas de problème.',
-    points: [
-      "Ventes, stock et dettes s'enregistrent sur le téléphone, sans internet.",
-      'Dès que vous êtes connecté à internet, la synchronisation est automatique.',
-      "Le gérant retrouve alors les ventes de toute l'équipe.",
     ],
   },
 ];
