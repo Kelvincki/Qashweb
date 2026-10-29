@@ -1,6 +1,17 @@
 {
   "rewrites": [
     {
+      "source": "/b/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(whatsapp|facebookexternalhit|facebot|twitterbot|telegrambot|linkedinbot|googlebot|google-inspectiontool).*"
+        }
+      ],
+      "destination": "/api/shop-meta?slug=:slug"
+    },
+    {
       "source": "/:path*",
       "destination": "/index.html"
     }
