@@ -26,6 +26,7 @@ export const VALID_ROUTES: PageRoute[] = [
   '/register',
   '/mot-de-passe-oublie',
   '/dashboard',
+  '/ma-boutique-en-ligne',
   '/auth/callback',
   '/paiement/succes',
   '/paiement/annule',
@@ -141,6 +142,11 @@ export const ROUTE_META: Record<PageRoute, RouteMeta> = {
   '/dashboard': {
     title: 'Mon espace — QASH',
     description: 'Abonnement, équipe et compte de votre boutique QASH.',
+    noindex: true,
+  },
+  '/ma-boutique-en-ligne': {
+    title: 'Ma boutique en ligne — QASH',
+    description: 'Créez, modifiez et publiez le catalogue en ligne de votre boutique.',
     noindex: true,
   },
   '/auth/callback': {

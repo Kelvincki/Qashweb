@@ -952,6 +952,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               ))}
             </div>
 
+            {!isEmployee && (
+              <AppLink
+                to="/ma-boutique-en-ligne"
+                className="group flex min-h-12 items-center justify-between gap-4 rounded-[2rem] bg-brand-yellow p-6 transition-colors hover:bg-[#FFC233]"
+              >
+                <span>
+                  <span className="block text-xl font-black">Ma boutique en ligne</span>
+                  <span className="mt-1 block text-base">Choisissez les produits à montrer à vos clients et publiez votre catalogue.</span>
+                </span>
+                <ArrowRight className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+              </AppLink>
+            )}
+
             <p className="pt-2 text-base">
               Vos ventes, votre stock et votre bénéfice se consultent dans l&apos;application QASH.
             </p>

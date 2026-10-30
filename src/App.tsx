@@ -32,6 +32,7 @@ const LoginPage = page(() => import('./pages/LoginPage'), 'LoginPage');
 const RegisterPage = page(() => import('./pages/RegisterPage'), 'RegisterPage');
 const ForgotPasswordPage = page(() => import('./pages/ForgotPasswordPage'), 'ForgotPasswordPage');
 const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage');
+const ShopEditorPage = page(() => import('./pages/ShopEditorPage'), 'ShopEditorPage');
 const AuthCallbackPage = page(() => import('./pages/AuthCallbackPage'), 'AuthCallbackPage');
 const PaymentSuccessPage = page(() => import('./pages/PaymentSuccessPage'), 'PaymentSuccessPage');
 const PaymentCanceledPage = page(() => import('./pages/PaymentCanceledPage'), 'PaymentCanceledPage');
@@ -94,6 +95,8 @@ function renderPage(route: CurrentRoute, navigate: (route: PageRoute, hash?: str
       return <ForgotPasswordPage onNavigate={navigate} />;
     case '/dashboard':
       return <DashboardPage onNavigate={navigate} />;
+    case '/ma-boutique-en-ligne':
+      return <ShopEditorPage onNavigate={navigate} />;
     case '/auth/callback':
       return <AuthCallbackPage onNavigate={navigate} />;
     case '/paiement/succes':
