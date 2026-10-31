@@ -4,6 +4,10 @@
  * Aucune clé secrète : seulement l'URL et la clé publique déjà utilisées par le site.
  */
 
+import { AccentName, isAccentName } from './accent';
+import { Hours, normalizeHours } from './hours';
+import { NETWORKS, Social, isValidSocialId } from './social';
+
 // Même valeur par défaut que src/lib/supabase.ts (non modifié : il touche à l'authentification)
 const DEFAULT_URL = 'https://afstcyjnzwaurkqmomnj.supabase.co';
 const rawUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -24,6 +28,10 @@ export interface ShopProduct {
   available: boolean;
   /** Chemin dans le bucket public « catalog », ou null. */
   photo: string | null;
+  /** Adresse complète de la photo (calculée à la lecture ; remplaçable par un aperçu local dans l'éditeur). */
+  photoUrl: string | null;
+  /** Produit « coup de cœur ». */
+  featured: boolean;
   v: number | null;
 }
 
@@ -35,7 +43,22 @@ export interface Shop {
   whatsapp: string;
   address: string;
   logo: string | null;
+  logoUrl: string | null;
   businessType: string;
+  /** Accroche (80 caractères au plus). */
+  tagline: string;
+  /** « À propos » (1 000 caractères au plus). */
+  about: string;
+  banner: string | null;
+  bannerUrl: string | null;
+  /** Horaires, ou null si le gérant n'en a pas renseigné. */
+  hours: Hours | null;
+  /** Identifiants de réseaux sociaux validés (jamais d'URL). */
+  social: Social;
+  deliveryInfo: string;
+  /** Information texte donnée par la boutique : aucun paiement en ligne. */
+  paymentInfo: string;
+  accent: AccentName | null;
   v: number | null;
   products: ShopProduct[];
 }
@@ -66,6 +89,8 @@ export function normalizeShop(input: unknown, expectedSlug: string): Shop | null
       const price = num(p.price);
       if (!id || !name || price === null || price < 0 || seen.has(id)) continue;
       seen.add(id);
+      const photo = str(p.photo, 300) || null;
+      const photoVersion = num(p.v);
       products.push({
         id,
         name,
@@ -76,10 +101,23 @@ export function normalizeShop(input: unknown, expectedSlug: string): Shop | null
         category: str(p.category, 60),
         description: str(p.description, 400),
         available: p.available !== false,
-        photo: str(p.photo, 300) || null,
-        v: num(p.v),
+        photo,
+        photoUrl: imageUrl(photo, photoVersion),
+        featured: p.featured === true,
+        v: photoVersion,
       });
     }
+  }
+
+  const shopVersion = num(o.v);
+  const logo = str(o.logo, 300) || null;
+  const banner = str(o.banner, 300) || null;
+
+  const social: Social = {};
+  const rawSocial = o.social && typeof o.social === 'object' ? (o.social as Record<string, unknown>) : {};
+  for (const network of NETWORKS) {
+    const id = str(rawSocial[network], 60).replace(/^@/, '');
+    if (id && isValidSocialId(id)) social[network] = id;
   }
 
   return {
@@ -88,9 +126,19 @@ export function normalizeShop(input: unknown, expectedSlug: string): Shop | null
     description: str(o.description, 600),
     whatsapp: str(o.whatsapp, 40),
     address: str(o.address, 200),
-    logo: str(o.logo, 300) || null,
+    logo,
+    logoUrl: imageUrl(logo, shopVersion),
     businessType: str(o.business_type, 60),
-    v: num(o.v),
+    tagline: str(o.tagline, 80),
+    about: str(o.about, 1000),
+    banner,
+    bannerUrl: imageUrl(banner, shopVersion),
+    hours: normalizeHours(o.hours),
+    social,
+    deliveryInfo: str(o.delivery_info, 300),
+    paymentInfo: str(o.payment_info, 200),
+    accent: isAccentName(o.accent) ? o.accent : null,
+    v: shopVersion,
     products,
   };
 }

@@ -8,6 +8,9 @@ export const formatPrice = (n: number): string => `${group(n, ' ')} FCFA`;
 /** Même montant avec des espaces ordinaires, pour le message WhatsApp. */
 export const plainPrice = (n: number): string => `${group(n, ' ')} FCFA`;
 
+/** « 7 000 F » : version courte pour le message WhatsApp (espaces ordinaires). */
+export const shortPrice = (n: number): string => `${group(n, ' ')} F`;
+
 export function priceUnit(p: Pick<ShopProduct, 'byWeight' | 'unit'>): string {
   if (p.byWeight) return '/kg';
   return p.unit ? `/${p.unit}` : '';
