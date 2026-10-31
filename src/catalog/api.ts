@@ -1,4 +1,6 @@
 import { supabase } from '../lib/supabase';
+import { AccentName, isAccentName } from '../shop/accent';
+import { Hours, normalizeHours } from '../shop/hours';
 
 /**
  * Accès serveur de l'éditeur « Ma boutique en ligne ».
@@ -30,11 +32,24 @@ export interface CatalogSettings {
   whatsapp: string;
   address: string;
   logoPath: string | null;
+  tagline: string;
+  about: string;
+  bannerPath: string | null;
+  hours: Hours | null;
+  /** Identifiants de réseaux sociaux (sans @). */
+  instagram: string;
+  facebook: string;
+  tiktok: string;
+  deliveryInfo: string;
+  paymentInfo: string;
+  accent: AccentName | null;
 }
 
 export interface CatalogItem {
   visible: boolean;
   photoPath: string | null;
+  /** Produit « coup de cœur ». */
+  featured: boolean;
 }
 
 export interface EditorStore {
@@ -81,7 +96,7 @@ export async function loadStore(storeId: string): Promise<EditorStore> {
 export async function loadSettings(storeId: string): Promise<CatalogSettings | null> {
   const { data, error } = await supabase
     .from('store_catalog')
-    .select('slug, published, title, description, whatsapp, address, logo_path')
+    .select('slug, published, title, description, whatsapp, address, logo_path, tagline, about, banner_path, hours, instagram, facebook, tiktok, delivery_info, payment_info, accent')
     .eq('store_id', storeId)
     .maybeSingle();
   if (error) throw error;
@@ -94,20 +109,30 @@ export async function loadSettings(storeId: string): Promise<CatalogSettings | n
     whatsapp: s(data.whatsapp),
     address: s(data.address),
     logoPath: s(data.logo_path) || null,
+    tagline: s(data.tagline),
+    about: s(data.about),
+    bannerPath: s(data.banner_path) || null,
+    hours: normalizeHours(data.hours),
+    instagram: s(data.instagram),
+    facebook: s(data.facebook),
+    tiktok: s(data.tiktok),
+    deliveryInfo: s(data.delivery_info),
+    paymentInfo: s(data.payment_info),
+    accent: isAccentName(data.accent) ? data.accent : null,
   };
 }
 
 export async function loadItems(storeId: string): Promise<Record<number, CatalogItem>> {
-  const rows = await fetchAllRows<{ product_local_id: number; visible: boolean; photo_path: string | null }>((from, to) =>
+  const rows = await fetchAllRows<{ product_local_id: number; visible: boolean; photo_path: string | null; featured: boolean | null }>((from, to) =>
     supabase
       .from('catalog_items')
-      .select('product_local_id, visible, photo_path')
+      .select('product_local_id, visible, photo_path, featured')
       .eq('store_id', storeId)
       .order('product_local_id')
       .range(from, to),
   );
   const items: Record<number, CatalogItem> = {};
-  for (const r of rows) items[r.product_local_id] = { visible: r.visible === true, photoPath: r.photo_path || null };
+  for (const r of rows) items[r.product_local_id] = { visible: r.visible === true, photoPath: r.photo_path || null, featured: r.featured === true };
   return items;
 }
 
@@ -182,6 +207,31 @@ export interface ItemUpdate {
   visible: boolean;
   /** Présent seulement si la photo change (null = retirer la photo). */
   photo_path?: string | null;
+  /** Présent seulement si « coup de cœur » change. */
+  featured?: boolean;
+}
+
+/**
+ * Profil de la boutique (catalog_save_profile) : seules les clés à modifier.
+ * Une clé présente avec '' ou null efface le champ ; une clé absente ne change rien.
+ */
+export interface ProfilePatch {
+  tagline?: string;
+  about?: string;
+  banner_path?: string | null;
+  hours?: Hours | null;
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+  delivery_info?: string;
+  payment_info?: string;
+  accent?: string | null;
+}
+
+/** À appeler après catalog_save_settings (le serveur répond not_configured sinon). */
+export async function saveProfile(patch: ProfilePatch): Promise<void> {
+  const { error } = await supabase.rpc('catalog_save_profile', { p_profile: patch });
+  if (error) throw error;
 }
 
 /** Enregistre la visibilité et les photos, 300 produits par appel (limite du serveur). */

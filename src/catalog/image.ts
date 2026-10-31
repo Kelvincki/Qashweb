@@ -64,7 +64,26 @@ async function decode(file: File): Promise<{ source: CanvasImageSource; width: n
 const toBlob = (canvas: HTMLCanvasElement, mime: string, quality: number): Promise<Blob | null> =>
   new Promise((resolve) => canvas.toBlob(resolve, mime, quality));
 
-export async function prepareImage(file: File): Promise<PreparedImage> {
+export interface PrepareOptions {
+  /** Rapport largeur/hauteur imposé : l'image est recadrée au centre (ex. 3 pour une bannière 3:1). */
+  aspect?: number;
+  /** Côté long maximal en pixels (1 024 par défaut). */
+  maxSide?: number;
+}
+
+/** Zone de l'image à garder pour obtenir le rapport voulu, centrée. */
+export function centerCrop(width: number, height: number, aspect: number): { x: number; y: number; width: number; height: number } {
+  if (!(aspect > 0)) return { x: 0, y: 0, width, height };
+  const current = width / height;
+  if (current > aspect) {
+    const w = Math.round(height * aspect);
+    return { x: Math.round((width - w) / 2), y: 0, width: w, height };
+  }
+  const h = Math.round(width / aspect);
+  return { x: 0, y: Math.round((height - h) / 2), width, height: h };
+}
+
+export async function prepareImage(file: File, options: PrepareOptions = {}): Promise<PreparedImage> {
   const problem = checkImageFile(file);
   if (problem) throw new ImageError(problem);
 
@@ -84,8 +103,11 @@ export async function prepareImage(file: File): Promise<PreparedImage> {
     const webp = probe.toDataURL('image/webp').startsWith('data:image/webp');
     const mime = webp ? 'image/webp' : 'image/jpeg';
 
+    const crop = centerCrop(decoded.width, decoded.height, options.aspect ?? 0);
+    const maxSide = options.maxSide ?? MAX_SIDE;
+
     for (const scale of [1, 0.8, 0.64, 0.5]) {
-      const target = fitWithin(decoded.width, decoded.height, Math.round(MAX_SIDE * scale));
+      const target = fitWithin(crop.width, crop.height, Math.round(maxSide * scale));
       const canvas = document.createElement('canvas');
       canvas.width = target.width;
       canvas.height = target.height;
@@ -96,7 +118,7 @@ export async function prepareImage(file: File): Promise<PreparedImage> {
         ctx.fillRect(0, 0, target.width, target.height);
       }
       ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(decoded.source, 0, 0, target.width, target.height);
+      ctx.drawImage(decoded.source, crop.x, crop.y, crop.width, crop.height, 0, 0, target.width, target.height);
 
       for (const quality of [0.82, 0.7, 0.55]) {
         const blob = await toBlob(canvas, mime, quality);

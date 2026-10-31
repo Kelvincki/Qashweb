@@ -11,6 +11,12 @@ const MESSAGES: Record<string, string> = {
   whatsapp_invalid: 'Le numéro WhatsApp n’est pas valide. Saisissez 8 à 15 chiffres avec l’indicatif du pays, par exemple +221 77 123 45 67.',
   path_invalid: "L'emplacement de l'image n'est pas valide. Choisissez de nouveau l'image, puis réessayez.",
   title_and_whatsapp_required: 'Pour publier, indiquez le nom de la boutique et un numéro WhatsApp.',
+  not_configured: 'Enregistrez d’abord les réglages de base de votre boutique (adresse, nom, WhatsApp), puis réessayez.',
+  profile_invalid: 'Les informations de présentation ont été refusées par le serveur. Rechargez la page, puis réessayez.',
+  text_too_long: 'Un texte est trop long : accroche 80 caractères, À propos 1 000, livraison 300, paiement 200.',
+  accent_invalid: 'Cette couleur n’est pas disponible. Choisissez une des cinq couleurs proposées.',
+  social_invalid: 'Un identifiant de réseau social n’est pas valide : lettres, chiffres, point, tiret ou tiret bas (50 au plus), sans espace.',
+  hours_invalid: 'Les horaires ne sont pas valides. Vérifiez que chaque heure est au format HH:MM, par exemple 08:30.',
   items_invalid: 'La liste des produits a été refusée par le serveur (300 produits au maximum par envoi). Réessayez.',
 };
 
