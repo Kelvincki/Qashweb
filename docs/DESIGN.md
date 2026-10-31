@@ -104,6 +104,16 @@ Discret : apparition des sections (opacité + 18 px, 0,5 s, une fois), retour au
 
 Les emplacements sont vides tant que les vidéos ne sont pas déposées (étape S3).
 
+## Boutique publique (`/b/:slug`) et éditeur
+
+Page autonome (pas de menu ni de pied de page du site), mobile d'abord. Sections dans l'ordre, **une section sans donnée n'est pas affichée** : hero (bannière 3:1 ou fond dégradé à la couleur d'accent, logo rond, accroche, badge Ouvert/Fermé, boutons), coups de cœur, catalogue (recherche, catégories collantes, tri, fiche détail), à propos, infos pratiques (horaires, adresse, livraison, paiement indiqué, réseaux), panier flottant, pied de page « Boutique créée avec QASH ».
+
+- **Couleur d'accent** choisie par le gérant : rouge `#E8161F` (défaut), ambre `#FFB000`, vert `#16A34A`, bleu `#2563EB`, noir `#18181B`. Le texte posé dessus est noir ou blanc selon le meilleur contraste (`src/shop/accent.ts`, AA minimum vérifié pour les cinq).
+- **Mise en page par « container queries »** (`@container`, variantes `@2xl:` etc.) : la même composante `ShopView` sert pleine page et dans l'aperçu en direct de l'éditeur (colonne de 400 px).
+- **Heure d'ouverture** : fuseau Africa/Dakar (UTC+0), plages passant minuit gérées, aucun badge si le jour du jour n'est pas renseigné (`src/shop/hours.ts`).
+- **Rien de la base n'est injecté en HTML brut** ; les liens de réseaux sont construits à partir d'identifiants validés (`src/shop/social.ts`). Les données structurées (JSON-LD Store/Restaurant) ne contiennent que ce que la boutique a fourni, ni prix ni disponibilité.
+- Éditeur `/ma-boutique-en-ligne` (gérant) : enregistrement dans l'ordre `catalog_save_settings` → `catalog_save_profile` → `catalog_set_items`, seuls les champs modifiés sont envoyés.
+
 ## Performance
 
 - Pages chargées à la demande (`React.lazy`) : l'accueil seul est dans le paquet principal.
