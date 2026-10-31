@@ -1,5 +1,6 @@
 import { ShopProduct } from './api';
-import { formatQty, plainPrice } from './format';
+import { formatQty, shortPrice } from './format';
+import { displayName } from './text';
 import { SITE_URL } from '../config/site';
 
 /** Panier : identifiant du produit → quantité. Les prix ne sont jamais stockés, ils viennent toujours du catalogue. */
@@ -96,18 +97,24 @@ export function buildOrderMessage(opts: {
   customerName: string;
   addressOrPickup: string;
 }): string {
+  // « 2 × Riz 5 kg : 7 000 F » ; au poids : « 1,5 kg × Oignon : 750 F »
   const rows = opts.lines.map(({ product: p, qty, amount }) => {
-    const label = p.variant ? `${p.name} (${p.variant})` : p.name;
-    const quantity = p.byWeight ? formatQty(qty, true).replace(' ', ' ') : String(qty);
-    return `- ${label} x ${quantity} = ${plainPrice(amount)}`;
+    const label = [displayName(p.name), p.variant].filter(Boolean).join(' ');
+    const quantity = p.byWeight ? formatQty(qty, true).replace(/\s/g, ' ') : String(qty);
+    return `- ${quantity} × ${label} : ${shortPrice(amount)}`;
   });
-  const parts = [`Bonjour ${opts.shopTitle}, je voudrais commander :`, ...rows, '', `Total : ${plainPrice(opts.total)}`, 'Commande à confirmer avec le commerçant.'];
-  const name = opts.customerName.trim();
-  const where = opts.addressOrPickup.trim();
-  if (name || where) parts.push('');
-  if (name) parts.push(`Nom : ${name}`);
-  if (where) parts.push(`Adresse ou retrait : ${where}`);
-  parts.push('', `Boutique : ${SITE_URL}/b/${opts.slug}`);
+  const parts = [
+    `Bonjour ${opts.shopTitle}, je voudrais commander :`,
+    ...rows,
+    '',
+    `Total : ${shortPrice(opts.total)}`,
+    'Commande à confirmer avec la boutique.',
+    '',
+    `Nom : ${opts.customerName.trim()}`,
+    `Adresse : ${opts.addressOrPickup.trim()}`,
+    '',
+    `Boutique : ${SITE_URL}/b/${opts.slug}`,
+  ];
   return parts.join('\n');
 }
 

@@ -1,19 +1,14 @@
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { MapPin, Search } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SITE_URL } from '../config/site';
 import { isValidSlug } from '../lib/shopSlug';
-import { Shop, ShopProduct, clearCachedShop, fetchCatalog, imageUrl, readCachedShop, writeCachedShop } from './api';
+import { Shop, ShopProduct, clearCachedShop, fetchCatalog, readCachedShop, writeCachedShop } from './api';
 import { buttonClasses } from '../components/ui/Button';
 import { Container } from '../components/ui/Layout';
-import { fold, formatPrice, sanitizeWhatsapp, whatsappUrl } from './format';
+import { sanitizeWhatsapp } from './format';
 import { Cart, cartLines, changeQty, loadCart, reconcile, saveCart } from './cart';
 import { CartSheet } from './CartSheet';
 import { applyShopMeta } from './meta';
-import { ProductCard } from './ProductCard';
-
-const PAGE_SIZE = 24;
-const MIN_PRODUCTS_FOR_INDEXING = 3;
-const ALL = '__all__';
+import { ShopView } from './ShopView';
 
 type Status = 'loading' | 'ready' | 'not_found' | 'error';
 
@@ -22,11 +17,6 @@ export const ShopApp: React.FC<{ slug: string }> = ({ slug }) => {
   const [shop, setShop] = useState<Shop | null>(null);
   const [stale, setStale] = useState(false);
   const [attempt, setAttempt] = useState(0);
-
-  const [query, setQuery] = useState('');
-  const deferredQuery = useDeferredValue(query);
-  const [category, setCategory] = useState(ALL);
-  const [visible, setVisible] = useState(PAGE_SIZE);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
@@ -49,10 +39,14 @@ export const ShopApp: React.FC<{ slug: string }> = ({ slug }) => {
   }, [shop]);
 
   const onChangeQty = useCallback((product: ShopProduct, direction: 1 | -1) => setCart((c) => changeQty(c, product, direction)), []);
-  const onRemove = useCallback((id: string) => setCart((c) => {
-    const { [id]: _removed, ...rest } = c;
-    return rest;
-  }), []);
+  const onRemove = useCallback(
+    (id: string) =>
+      setCart((c) => {
+        const { [id]: _removed, ...rest } = c;
+        return rest;
+      }),
+    [],
+  );
   const onClear = useCallback(() => {
     setCart({});
     setCartOpen(false);
@@ -101,46 +95,10 @@ export const ShopApp: React.FC<{ slug: string }> = ({ slug }) => {
     return () => controller.abort();
   }, [slug, attempt]);
 
-  // Titre, description et aperçu de partage
+  // Titre, description, aperçu de partage et données structurées
   useEffect(() => {
-    if (status === 'ready' && shop) {
-      applyShopMeta({
-        slug,
-        title: shop.title,
-        description: shop.description,
-        logoUrl: imageUrl(shop.logo, shop.v),
-        indexable: shop.products.length >= MIN_PRODUCTS_FOR_INDEXING,
-      });
-    } else {
-      applyShopMeta(null);
-    }
-  }, [status, shop, slug]);
-
-  const categories = useMemo(() => {
-    if (!shop) return [];
-    const names: string[] = [];
-    let hasOther = false;
-    for (const p of shop.products) {
-      if (!p.category) hasOther = true;
-      else if (!names.includes(p.category)) names.push(p.category);
-    }
-    if (hasOther && names.length > 0) names.push('Autres');
-    return names;
-  }, [shop]);
-
-  const filtered = useMemo(() => {
-    if (!shop) return [];
-    const q = fold(deferredQuery.trim());
-    return shop.products.filter((p) => {
-      const cat = p.category || 'Autres';
-      if (category !== ALL && cat !== category) return false;
-      if (!q) return true;
-      return fold(`${p.name} ${p.variant} ${p.category}`).includes(q);
-    });
-  }, [shop, deferredQuery, category]);
-
-  // Retour à la première page de résultats quand le filtre change
-  useEffect(() => setVisible(PAGE_SIZE), [deferredQuery, category]);
+    applyShopMeta(status === 'ready' && shop ? shop : null);
+  }, [status, shop]);
 
   if (status === 'loading') return <ShopSkeleton />;
 
@@ -164,139 +122,26 @@ export const ShopApp: React.FC<{ slug: string }> = ({ slug }) => {
     );
   }
 
-  const whatsappDigits = sanitizeWhatsapp(shop.whatsapp);
-  const logo = imageUrl(shop.logo, shop.v);
-
   return (
-    <div className="flex min-h-screen flex-col bg-white text-ink">
-      <header className="bg-brand-yellow">
-        <Container className="py-8 sm:py-12">
-          <div className="flex items-start gap-4 sm:gap-6">
-            <ShopLogo src={logo} name={shop.title} />
-            <div className="min-w-0 flex-1">
-              <h1 className="break-words text-[clamp(1.875rem,1.2rem+3vw,3.75rem)] font-black leading-[1] tracking-tight">{shop.title}</h1>
-              {shop.address && (
-                <p className="mt-3 flex items-start gap-2 text-lg font-semibold leading-snug">
-                  <MapPin className="mt-1 h-5 w-5 shrink-0" aria-hidden="true" />
-                  <span className="break-words">{shop.address}</span>
-                </p>
-              )}
-            </div>
-          </div>
-          {shop.description && <p className="mt-5 max-w-[44rem] whitespace-pre-line break-words text-lg leading-relaxed">{shop.description}</p>}
-          {whatsappDigits && (
-            <a
-              href={whatsappUrl(whatsappDigits, `Bonjour ${shop.title}, `)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={buttonClasses('dark', 'lg', 'mt-6')}
-            >
-              Écrire sur WhatsApp
-            </a>
-          )}
-        </Container>
-      </header>
-
-      <main className={`flex-1 ${lines.length > 0 ? 'pb-32' : 'pb-12'}`}>
-        {/* Recherche et catégories, toujours à portée de pouce */}
-        <div className="sticky top-0 z-20 bg-white py-3">
-          <Container>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" aria-hidden="true" />
-              <input
-                type="search"
-                inputMode="search"
-                aria-label="Rechercher un produit"
-                placeholder="Rechercher un produit"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                maxLength={80}
-                className="h-12 w-full rounded-full bg-field pl-12 pr-4 text-lg placeholder:text-muted focus:bg-white focus:outline-none focus:ring-[3px] focus:ring-ink"
-              />
-            </div>
-            {categories.length > 0 && (
-              <div className="-mx-5 mt-3 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0" role="group" aria-label="Catégories">
-                {[ALL, ...categories].map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    aria-pressed={category === c}
-                    onClick={() => setCategory(c)}
-                    className={`flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full px-5 text-base font-bold transition-colors ${
-                      category === c ? 'bg-ink text-white' : 'bg-field text-ink hover:bg-field-strong'
-                    }`}
-                  >
-                    {c === ALL ? 'Tout' : c}
-                  </button>
-                ))}
-              </div>
-            )}
-          </Container>
-        </div>
-
-        <Container className="pt-4">
-          {stale && (
-            <p className="mb-4 rounded-2xl bg-warning-soft p-4 text-base" role="status">
-              Affichage des dernières données enregistrées sur cet appareil.{' '}
-              <button type="button" onClick={retry} className="font-bold underline decoration-2 underline-offset-4">
-                Actualiser
-              </button>
-            </p>
-          )}
-
-          {droppedNotice && (
-            <p className="mb-4 rounded-2xl bg-warning-soft p-4 text-base" role="status">
-              Certains articles de votre panier ne sont plus disponibles : ils ont été retirés.{' '}
-              <button type="button" onClick={() => setDroppedNotice(false)} className="font-bold underline decoration-2 underline-offset-4">
-                Fermer
-              </button>
-            </p>
-          )}
-
-          {shop.products.length === 0 ? (
-            <EmptyMessage title="Cette boutique n'a pas encore de produits." text="Revenez bientôt, ou écrivez directement à la boutique." />
-          ) : filtered.length === 0 ? (
-            <EmptyMessage title="Aucun produit trouvé." text="Essayez un autre mot, ou choisissez « Tout »." />
-          ) : (
-            <>
-              <p className="mb-4 text-base" aria-live="polite">
-                {filtered.length} produit{filtered.length > 1 ? 's' : ''}
-              </p>
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {filtered.slice(0, visible).map((p, i) => (
-                  <ProductCard key={p.id} product={p} qty={cart[p.id] ?? 0} onChange={onChangeQty} priority={i < 2} />
-                ))}
-              </ul>
-              {visible < filtered.length && (
-                <div className="mt-8 flex justify-center">
-                  <button type="button" onClick={() => setVisible((n) => n + PAGE_SIZE)} className={buttonClasses('quiet', 'lg')}>
-                    Voir plus de produits
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </Container>
-      </main>
-
-      <ShopFooter />
-
-      {lines.length > 0 && !cartOpen && (
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-ink p-3">
-          <button type="button" onClick={() => setCartOpen(true)} className={buttonClasses('yellow', 'lg', 'w-full justify-between gap-3 px-6')}>
-            <span>
-              Mon panier · {lines.length} produit{lines.length > 1 ? 's' : ''}
-            </span>
-            <span>{formatPrice(total)}</span>
-          </button>
-        </div>
-      )}
-
+    <>
+      <ShopView
+        shop={shop}
+        cart={cart}
+        onChangeQty={onChangeQty}
+        cartCount={lines.length}
+        cartTotal={total}
+        onOpenCart={() => setCartOpen(true)}
+        stale={stale}
+        onRefresh={retry}
+        droppedNotice={droppedNotice}
+        onDismissDropped={() => setDroppedNotice(false)}
+      />
       {cartOpen && (
         <CartSheet
           shopTitle={shop.title}
           slug={slug}
-          whatsappDigits={whatsappDigits}
+          accent={shop.accent}
+          whatsappDigits={sanitizeWhatsapp(shop.whatsapp)}
           lines={lines}
           total={total}
           onChange={(id, direction) => {
@@ -308,43 +153,21 @@ export const ShopApp: React.FC<{ slug: string }> = ({ slug }) => {
           onClose={closeCart}
         />
       )}
-    </div>
-  );
-};
-
-const ShopLogo: React.FC<{ src: string | null; name: string }> = ({ src, name }) => {
-  const [failed, setFailed] = useState(false);
-  return (
-    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-3xl bg-white sm:h-28 sm:w-28">
-      {src && !failed ? (
-        <img src={src} alt={`Logo de ${name}`} width={112} height={112} decoding="async" fetchPriority="high" onError={() => setFailed(true)} className="h-full w-full object-contain" />
-      ) : (
-        <div aria-hidden="true" className="flex h-full w-full items-center justify-center text-4xl font-black sm:text-5xl">
-          {name.charAt(0).toUpperCase()}
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 
 const ShopFooter: React.FC = () => (
-  <footer className="bg-field py-8">
+  <footer className="bg-field py-6">
     <Container>
       <p className="text-base">
-        Boutique en ligne propulsée par{' '}
+        Boutique créée avec{' '}
         <a href={SITE_URL} className="font-bold underline decoration-2 underline-offset-4 hover:text-brand-red">
           QASH
         </a>
       </p>
     </Container>
   </footer>
-);
-
-const EmptyMessage: React.FC<{ title: string; text: string }> = ({ title, text }) => (
-  <div className="rounded-[2rem] bg-field p-8 sm:p-12">
-    <p className="text-title font-black">{title}</p>
-    <p className="mt-2 text-lg">{text}</p>
-  </div>
 );
 
 const Unavailable: React.FC<{ title: string; text: string; onRetry?: () => void; showSiteLink?: boolean }> = ({ title, text, onRetry, showSiteLink = true }) => (
@@ -371,22 +194,19 @@ const Unavailable: React.FC<{ title: string; text: string; onRetry?: () => void;
   </div>
 );
 
-/** Squelette : même mise en page que la boutique, pour que rien ne saute à l'arrivée des données. */
+/** Squelette : même mise en page que la boutique (bannière, logo, grille), pour que rien ne saute à l'arrivée des données. */
 const ShopSkeleton: React.FC = () => (
   <div className="min-h-screen bg-white" aria-busy="true" aria-label="Chargement de la boutique">
-    <div className="bg-brand-yellow">
-      <Container className="py-8 sm:py-12">
-        <div className="flex items-start gap-4">
-          <div className="h-20 w-20 shrink-0 animate-pulse rounded-3xl bg-white/70 sm:h-28 sm:w-28" />
-          <div className="flex-1 space-y-3 pt-2">
-            <div className="h-9 w-3/4 animate-pulse rounded-full bg-white/70" />
-            <div className="h-5 w-1/2 animate-pulse rounded-full bg-white/70" />
-          </div>
-        </div>
-      </Container>
-    </div>
-    <Container className="pt-6">
-      <div className="h-12 w-full animate-pulse rounded-full bg-field" />
+    <div className="aspect-[3/1] w-full animate-pulse bg-field-strong sm:aspect-[4/1]" />
+    <Container>
+      <div className="-mt-10 h-20 w-20 animate-pulse rounded-full border-4 border-white bg-field sm:-mt-14 sm:h-28 sm:w-28" />
+      <div className="mt-4 h-9 w-3/4 animate-pulse rounded-full bg-field" />
+      <div className="mt-3 h-5 w-1/2 animate-pulse rounded-full bg-field" />
+      <div className="mt-5 flex gap-2">
+        <div className="h-12 w-48 animate-pulse rounded-full bg-field" />
+        <div className="h-12 w-32 animate-pulse rounded-full bg-field" />
+      </div>
+      <div className="mt-8 h-12 w-full animate-pulse rounded-full bg-field" />
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="overflow-hidden rounded-[1.5rem] bg-field">

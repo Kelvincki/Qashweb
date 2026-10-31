@@ -33,6 +33,10 @@ interface PageMeta {
   url: string;
   image: string;
   indexable: boolean;
+  /** Données structurées schema.org, déjà sérialisées et sûres pour une balise script. */
+  jsonLd?: string;
+  /** Grande image (bannière) : carte Twitter large. */
+  largeImage?: boolean;
 }
 
 function renderHtml(m: PageMeta): string {
@@ -55,10 +59,11 @@ function renderHtml(m: PageMeta): string {
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${description}">
 <meta property="og:image" content="${image}">
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="${m.largeImage ? 'summary_large_image' : 'summary'}">
 <meta name="twitter:title" content="${title}">
 <meta name="twitter:description" content="${description}">
-<meta name="twitter:image" content="${image}">
+<meta name="twitter:image" content="${image}">${m.jsonLd ? `
+<script type="application/ld+json">${m.jsonLd}</script>` : ''}
 </head>
 <body>
 <h1>${title}</h1>
@@ -77,6 +82,67 @@ function logoUrl(supabaseUrl: string, path: string, v: unknown): string | null {
   if (segments.some((s) => s === '' || s === '.' || s === '..')) return null;
   const version = typeof v === 'number' && Number.isFinite(v) ? `?v=${encodeURIComponent(String(v))}` : '';
   return `${supabaseUrl}/storage/v1/object/public/catalog/${segments.map(encodeURIComponent).join('/')}${version}`;
+}
+
+const DAYS: Array<[string, string]> = [
+  ['mon', 'Monday'],
+  ['tue', 'Tuesday'],
+  ['wed', 'Wednesday'],
+  ['thu', 'Thursday'],
+  ['fri', 'Friday'],
+  ['sat', 'Saturday'],
+  ['sun', 'Sunday'],
+];
+const TIME_RE = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
+const SOCIAL_RE = /^[A-Za-z0-9._-]{1,50}$/;
+const RESTAURANT_TYPES = new Set(['restaurant', 'resto', 'food_service', 'traiteur', 'catering']);
+
+function socialLinks(social: unknown): string[] {
+  if (!social || typeof social !== 'object') return [];
+  const s = social as Record<string, unknown>;
+  const networks: Array<[string, (id: string) => string]> = [
+    ['instagram', (id) => `https://www.instagram.com/${encodeURIComponent(id)}`],
+    ['facebook', (id) => `https://www.facebook.com/${encodeURIComponent(id)}`],
+    ['tiktok', (id) => `https://www.tiktok.com/@${encodeURIComponent(id)}`],
+  ];
+  return networks.flatMap(([key, url]) => {
+    const id = clean(s[key], 60).replace(/^@/, '');
+    return id && SOCIAL_RE.test(id) ? [url(id)] : [];
+  });
+}
+
+/** schema.org Store ou Restaurant : seulement ce que la boutique a fourni, ni prix ni disponibilité. */
+function buildJsonLd(shop: Record<string, unknown>, title: string, url: string, image: string | null, description: string): string {
+  const data: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': RESTAURANT_TYPES.has(clean(shop.business_type, 60).toLowerCase()) ? 'Restaurant' : 'Store',
+    name: title,
+    url,
+  };
+  if (description) data.description = description;
+  if (image) data.image = image;
+
+  const digits = clean(shop.whatsapp, 40).replace(/^\+/, '').replace(/[\s.\-()]/g, '').replace(/^00/, '');
+  if (/^\d{8,15}$/.test(digits)) data.telephone = `+${digits}`;
+  const address = clean(shop.address, 200);
+  if (address) data.address = { '@type': 'PostalAddress', streetAddress: address };
+
+  const hours = shop.hours && typeof shop.hours === 'object' ? (shop.hours as Record<string, unknown>) : {};
+  const specs = DAYS.flatMap(([key, day]) => {
+    const slot = hours[key];
+    if (!slot || typeof slot !== 'object') return [];
+    const { open, close } = slot as Record<string, unknown>;
+    return typeof open === 'string' && typeof close === 'string' && TIME_RE.test(open) && TIME_RE.test(close)
+      ? [{ '@type': 'OpeningHoursSpecification', dayOfWeek: day, opens: open, closes: close }]
+      : [];
+  });
+  if (specs.length > 0) data.openingHoursSpecification = specs;
+
+  const sameAs = socialLinks(shop.social);
+  if (sameAs.length > 0) data.sameAs = sameAs;
+
+  // « < » écrit en < : rien ne peut fermer la balise script
+  return JSON.stringify(data).replace(/</g, '\\u003c');
 }
 
 function send(res: ServerResponse, status: number, html: string, cache: string): void {
@@ -151,14 +217,20 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     ? shop.products.filter((p) => p && typeof p === 'object' && clean((p as Record<string, unknown>).name, 140)).length
     : 0;
   const logo = typeof shop.logo === 'string' && shop.logo ? logoUrl(supabaseUrl, clean(shop.logo, 300), shop.v) : null;
+  const banner = typeof shop.banner === 'string' && shop.banner ? logoUrl(supabaseUrl, clean(shop.banner, 300), shop.v) : null;
+  const pageUrl = `${SITE_URL}/b/${slug}`;
+  // L'accroche passe avant la description ; la bannière avant le logo
+  const description =
+    clean(shop.tagline, 80) || clean(shop.description, 200) || `Commandez chez ${title} : parcourez les produits et envoyez votre commande sur WhatsApp.`;
 
   const html = renderHtml({
     title: `${title} — Boutique en ligne`,
-    description:
-      clean(shop.description, 200) || `Commandez chez ${title} : parcourez les produits et envoyez votre commande sur WhatsApp.`,
-    url: `${SITE_URL}/b/${slug}`,
-    image: logo ?? FALLBACK_IMAGE,
+    description,
+    url: pageUrl,
+    image: banner ?? logo ?? FALLBACK_IMAGE,
     indexable: productCount >= MIN_PRODUCTS_FOR_INDEXING,
+    jsonLd: buildJsonLd(shop, title, pageUrl, banner ?? logo, clean(shop.tagline, 80) || clean(shop.description, 200)),
+    largeImage: banner !== null,
   });
   send(res, 200, req.method === 'HEAD' ? '' : html, 'public, s-maxage=300, stale-while-revalidate=600');
 }
